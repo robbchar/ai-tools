@@ -9,7 +9,7 @@ ai-tools/
 └── claude/
     └── hooks/
         └── PreToolUse/
-            └── smart_approve.py
+            └── smart_approver.py
 ```
 
 ## Claude
@@ -28,7 +28,7 @@ Hooks that run before Claude Code executes a tool, allowing you to approve, deny
 
 ---
 
-##### `smart_approve.py`
+##### `smart_approver.py`
 
 Decomposes compound bash commands and checks each sub-command against the `allow`/`deny` patterns in your `settings.json`. Solves the problem of Claude Code's built-in pattern matching not handling `&&`, `||`, `;`, pipes, subshells `$()`, or git's `-C` flag.
 
@@ -54,7 +54,7 @@ Add to your `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /path/to/ai-tools/claude/hooks/PreToolUse/smart_approve.py"
+            "command": "python3 /path/to/ai-tools/claude/hooks/PreToolUse/smart_approver.py"
           }
         ]
       }
@@ -66,7 +66,7 @@ Add to your `~/.claude/settings.json`:
 **Verbose logging:**
 
 ```bash
-SMART_APPROVE_VERBOSE=1 claude
+SMART_APPROVER_VERBOSE=1 claude
 ```
 
 ---

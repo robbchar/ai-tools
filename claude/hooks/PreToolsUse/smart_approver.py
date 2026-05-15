@@ -549,11 +549,11 @@ _log_lines = []
 def _verbose_enabled():
     """Check if verbose logging is enabled.
 
-    Controlled by SMART_APPROVE_VERBOSE env var:
+    Controlled by SMART_APPROVER_VERBOSE env var:
       "1", "true", "yes" → enabled
       "0", "false", "no", unset → disabled
     """
-    return os.environ.get("SMART_APPROVE_VERBOSE", "").lower() in ("1", "true", "yes")
+    return os.environ.get("SMART_APPROVER_VERBOSE", "").lower() in ("1", "true", "yes")
 
 
 def log(msg):
