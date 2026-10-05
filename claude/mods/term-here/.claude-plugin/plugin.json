@@ -1,0 +1,7 @@
+{
+  "name": "term-here",
+  "version": "0.1.0",
+  "author": { "name": "Cathedral Tree Dev" },
+  "description": "Open a terminal (or copy the path) at the directory the model is currently working in",
+  "types": "./types/index.d.ts"
+}
