@@ -6,6 +6,8 @@ const run = (command: string) => ({
 })
 
 const DIR = 'C:\\Users\\robb\\code\\proj\\packages\\api'
+const POSIX_DIR = '/home/robb/code/my proj'
+const WT_FROM_WSL = '/mnt/c/Users/Admin/AppData/Local/Microsoft/WindowsApps/wt.exe'
 
 const ok = { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
 const fail = { value: { ...ok.value, exitCode: 1 } }
@@ -75,5 +77,35 @@ describe('term-here', () => {
 
     expect(launched).toEqual(['wt-git-bash', 'git-bash', 'powershell', 'wt.exe', 'open'])
     expect(out.text).toContain('Terminal')
+  })
+
+  test('a POSIX path opens the Ubuntu profile through its full wt.exe path, spaces intact', async ($, on) => {
+    const argvs: Array<readonly string[]> = []
+    on('session.cwd', () => ({ value: POSIX_DIR }))
+    on('process.run', (_$, e) => {
+      argvs.push(e.argv)
+      return ok
+    })
+
+    const out = await $.command.run(run('term'))
+
+    expect(argvs).toEqual([
+      [WT_FROM_WSL, 'new-tab', '-p', 'Ubuntu', 'wsl.exe', '--cd', POSIX_DIR],
+    ])
+    expect(out.text).toBe(`Opened Windows Terminal (WSL) at ${POSIX_DIR}`)
+  })
+
+  test('a POSIX path falls through to the rest when wt.exe is not there', async ($, on) => {
+    const launched: string[] = []
+    on('session.cwd', () => ({ value: POSIX_DIR }))
+    on('process.run', (_$, e) => {
+      launched.push(label(e.argv))
+      return e.argv[0] === 'open' ? ok : { deny: 'ENOENT' }
+    })
+
+    const out = await $.command.run(run('term'))
+
+    expect(launched).toEqual([WT_FROM_WSL, 'wt-git-bash', 'git-bash', 'powershell', 'wt.exe', 'open'])
+    expect(out.text).toContain(`Opened Terminal at ${POSIX_DIR}`)
   })
 })

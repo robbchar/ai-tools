@@ -40,6 +40,17 @@ const LAUNCHERS: readonly Launcher[] = [
   { name: 'Terminal', argv: dir => ['open', '-a', 'Terminal', dir] }, // macOS
 ]
 
+// WSL has no Windows PATH here, so wt.exe needs its full path; wsl.exe --cd takes the Linux path as is.
+const WSL_LAUNCHER: Launcher = {
+  name: 'Windows Terminal (WSL)',
+  argv: dir => [
+    '/mnt/c/Users/Admin/AppData/Local/Microsoft/WindowsApps/wt.exe',
+    'new-tab', '-p', 'Ubuntu', 'wsl.exe', '--cd', dir,
+  ],
+}
+
+const launchersFor = (dir: string) => (dir.startsWith('/') ? [WSL_LAUNCHER, ...LAUNCHERS] : LAUNCHERS)
+
 async function refreshCwd($: EngineInterface): Promise<string> {
   const cwd = await $.session.cwd()
   await update($, cwdAtom, () => cwd)
@@ -49,7 +60,7 @@ async function refreshCwd($: EngineInterface): Promise<string> {
 async function openTerminal($: EngineInterface): Promise<string> {
   const dir = await refreshCwd($)
   const skipped: string[] = []
-  for (const launcher of LAUNCHERS) {
+  for (const launcher of launchersFor(dir)) {
     try {
       const { exitCode, stderr } = await $.process.run(launcher.argv(dir), {
         timeoutMs: 10_000,
