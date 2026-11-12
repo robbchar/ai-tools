@@ -134,11 +134,11 @@ Runs the review flow in one command: the finders in parallel (`/test-review` and
 
 | Level | Runs | Roughly |
 |---|---|---|
-| `quick` | `/code-review` (medium), then the audit | ~200–250k tokens, ~15 min |
-| `standard` (default) | adds `/test-review`, and `/drift-check` when the diff removes or renames something or touches workflows; `/code-review` at high | ~350–400k tokens, ~20 min |
-| `full` | always `/drift-check`, `/code-review` at xhigh, and the three focus passes | ~700k+ tokens, ~30–40 min |
+| `quick` | `/code-review` (medium), then the audit | ~200–250k tokens, ~15–20 min |
+| `standard` (default) | adds `/test-review`, and `/drift-check` when the diff removes or renames something or touches workflows; `/code-review` at high | ~350–400k tokens, ~25–30 min |
+| `full` | always `/drift-check`, `/code-review` at xhigh, and the three focus passes | ~700k+ tokens, ~35–45 min |
 
-The token and time figures are estimates from test runs of the parts, not from a full run.
+The figures are for a PR of about 1,500 changed lines, estimated from timed runs of each part rather than a full run; a small PR takes roughly half as long. The finders run in parallel, so a level takes about as long as its slowest finder plus the audit, which grows with the number of findings it has to check.
 
 ---
 
