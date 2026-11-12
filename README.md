@@ -7,9 +7,13 @@ A collection of utilities, hooks, and scripts for working with AI tools and plat
 ```
 ai-tools/
 └── claude/
+    ├── Claude.md
     ├── hooks/
-    │   └── PreToolUse/
-    │       └── smart_approver.py
+    │   └── PreToolsUse/
+    │       ├── smart_approver.py
+    │       └── test_smart_approver.py
+    ├── mods/
+    │   └── term-here/
     └── skills/
         └── test-review/
             └── SKILL.md
@@ -57,7 +61,7 @@ Add to your `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /path/to/ai-tools/claude/hooks/PreToolUse/smart_approver.py"
+            "command": "python3 /path/to/ai-tools/claude/hooks/PreToolsUse/smart_approver.py"
           }
         ]
       }
@@ -71,6 +75,18 @@ Add to your `~/.claude/settings.json`:
 ```bash
 SMART_APPROVER_VERBOSE=1 claude
 ```
+
+---
+
+### Mods
+
+Claude Code plugins, each loaded from its folder through `CLAUDE_CODE_PLUGIN_DIRS`. Each has its own README with setup steps.
+
+---
+
+##### `term-here`
+
+Opens a terminal at the directory Claude is working in: a band above the prompt with Terminal and Copy buttons, `/term` to open a terminal there, and `/cwd` to copy the path. Setup: [claude/mods/term-here/README.md](claude/mods/term-here/README.md).
 
 ---
 
