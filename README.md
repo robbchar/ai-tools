@@ -10,6 +10,9 @@ ai-tools/
     ├── Claude.md
     ├── agents/
     │   ├── Explore.md
+    │   ├── diff-reviewer.md
+    │   ├── scout.md
+    │   ├── sleuth.md
     │   └── test-runner.md
     ├── hooks/
     │   └── PreToolsUse/
@@ -31,6 +34,9 @@ Tools and configuration for Claude Code, Anthropic's agentic coding CLI.
 Subagent definitions that Claude hands work to; you don't call them yourself. Install one by copying or symlinking its file into `~/.claude/agents/`.
 
 - **`Explore`**: read-only codebase exploration on a fast model. Returns file paths, line numbers and how the pieces connect.
+- **`diff-reviewer`**: a cold review of a change set by a reviewer that doesn't know why the code was written that way. Reports findings only as concrete failure scenarios.
+- **`scout`**: answers "where is X" and "how is Y wired" with `file:line` anchors, never file contents.
+- **`sleuth`**: reproduces a failing build, test or command in its own worktree and narrows it to a cause. Returns the diagnosis and a suggested fix, not the fix.
 - **`test-runner`**: runs tests, lint and typecheck after a change and reports only the failures.
 
 ### Hooks
