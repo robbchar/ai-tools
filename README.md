@@ -8,6 +8,9 @@ A collection of utilities, hooks, and scripts for working with AI tools and plat
 ai-tools/
 └── claude/
     ├── Claude.md
+    ├── agents/
+    │   ├── Explore.md
+    │   └── test-runner.md
     ├── hooks/
     │   └── PreToolsUse/
     │       ├── smart_approver.py
@@ -22,6 +25,13 @@ ai-tools/
 ## Claude
 
 Tools and configuration for Claude Code, Anthropic's agentic coding CLI.
+
+### Agents
+
+Subagent definitions that Claude hands work to; you don't call them yourself. Install one by copying or symlinking its file into `~/.claude/agents/`.
+
+- **`Explore`**: read-only codebase exploration on a fast model. Returns file paths, line numbers and how the pieces connect.
+- **`test-runner`**: runs tests, lint and typecheck after a change and reports only the failures.
 
 ### Hooks
 
