@@ -16,8 +16,10 @@ One command for the whole review flow. `/code-review`, `/test-review` and `/drif
 | Level | Finders | `/code-review` level | Challenge |
 |---|---|---|---|
 | `quick` | `/code-review` | `medium` | audit only |
-| `standard` | `/code-review`, `/test-review`, and `/drift-check` when step 2 says so | `high` | audit only |
+| `standard` | `/code-review`, `/test-review`, and `/drift-check` when step 3 says so | `xhigh` | audit only |
 | `full` | `/code-review`, `/test-review`, `/drift-check` | `xhigh` | focus passes and audit |
+
+`quick` suits a small, obvious change; `standard` anything complex; `full` changes to auth, permissions, money, infrastructure, or anything that removes behavior.
 
 Never run `/code-review` at `max` or `ultra` unless the user asks for it.
 
