@@ -25,6 +25,8 @@ ai-tools/
         │   ├── SKILL.md
         │   ├── adversary-prompt.md
         │   └── lenses/
+        ├── deep-review/
+        │   └── SKILL.md
         ├── drift-check/
         │   ├── SKILL.md
         │   ├── removed_names.py
@@ -118,7 +120,25 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
 
-A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found.
+A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found. `/deep-review` runs that flow in one command.
+
+---
+
+##### `deep-review`
+
+Runs the review flow in one command: the finders in parallel (`/test-review` and `/drift-check` as background subagents while `/code-review` runs), then `/challenge-review` over everything they found. It ends with a numbered fix list and changes nothing until you pick.
+
+```
+/deep-review [PR number | branch | base..head] [quick | standard | full]
+```
+
+| Level | Runs | Roughly |
+|---|---|---|
+| `quick` | `/code-review` (medium), then the audit | ~200–250k tokens, ~15 min |
+| `standard` (default) | adds `/test-review`, and `/drift-check` when the diff removes or renames something or touches workflows; `/code-review` at high | ~350–400k tokens, ~20 min |
+| `full` | always `/drift-check`, `/code-review` at xhigh, and the three focus passes | ~700k+ tokens, ~30–40 min |
+
+The token and time figures are estimates from test runs of the parts, not from a full run.
 
 ---
 
