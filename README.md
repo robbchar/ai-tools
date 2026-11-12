@@ -21,6 +21,10 @@ ai-tools/
     ├── mods/
     │   └── term-here/
     └── skills/
+        ├── challenge-review/
+        │   ├── SKILL.md
+        │   ├── adversary-prompt.md
+        │   └── lenses/
         └── test-review/
             └── SKILL.md
 ```
@@ -110,6 +114,24 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
 
+A full review is `/code-review`, then `/test-review`, then `/challenge-review` over what they found.
+
+---
+
+##### `challenge-review`
+
+Hardens the findings a review has produced before anything is posted or fixed:
+
+- **Focus passes**, one subagent each for failure paths, data exposure and permissions. Each must list every item in scope (each operation, sink or API call) and give an outcome for every one, so it can't stop after its first few finds.
+- **An evidence bar**: a High or Medium finding needs a repro that was actually run, or a code change no test caught. Otherwise it's capped at Low and tagged unverified.
+- **An audit round**: a fresh subagent gets the findings numbered, with no reviewer names, and confirms or refutes each one, checks each proposed fix, and reconsiders dismissed findings.
+
+Every subagent works in a scratch worktree, so it can't read plans or notes left in your own tree.
+
+```
+/challenge-review [PR number | branch | base..head] [failure-paths,data-exposure,permissions | none]
+```
+
 ---
 
 ##### `test-review`
@@ -122,7 +144,7 @@ Run it after `/code-review`, which looks for bugs in the code rather than gaps i
 /test-review [PR number | branch | base..head] [max-breaks]
 ```
 
-`max-breaks` defaults to 20. Each break is a test run, so a review costs several minutes.
+`max-breaks` defaults to 20. Each break is a test run, so a review costs several minutes. For Python it runs the tests against the scratch tree's own source, since a shared venv's editable install can point at another checkout.
 
 ---
 
