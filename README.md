@@ -7,9 +7,12 @@ A collection of utilities, hooks, and scripts for working with AI tools and plat
 ```
 ai-tools/
 └── claude/
-    └── hooks/
-        └── PreToolUse/
-            └── smart_approver.py
+    ├── hooks/
+    │   └── PreToolUse/
+    │       └── smart_approver.py
+    └── skills/
+        └── test-review/
+            └── SKILL.md
 ```
 
 ## Claude
@@ -68,6 +71,26 @@ Add to your `~/.claude/settings.json`:
 ```bash
 SMART_APPROVER_VERBOSE=1 claude
 ```
+
+---
+
+### Skills
+
+Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
+
+---
+
+##### `test-review`
+
+Checks whether a change's tests would fail if the behavior they cover broke. It works in a scratch worktree: it lists each rule the diff adds or changes, breaks each one twice (removes it, then miswires it), runs the related tests, and reports every break that no test catches. It also reads the new assertions for expected values built with the code under test, text matched anywhere in a row, and counts that don't check which items.
+
+Run it after `/code-review`, which looks for bugs in the code rather than gaps in the tests:
+
+```
+/test-review [PR number | branch | base..head] [max-breaks]
+```
+
+`max-breaks` defaults to 20. Each break is a test run, so a review costs several minutes.
 
 ---
 
