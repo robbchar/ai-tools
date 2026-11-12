@@ -25,6 +25,10 @@ ai-tools/
         │   ├── SKILL.md
         │   ├── adversary-prompt.md
         │   └── lenses/
+        ├── drift-check/
+        │   ├── SKILL.md
+        │   ├── removed_names.py
+        │   └── workflow_paths.py
         └── test-review/
             └── SKILL.md
 ```
@@ -114,7 +118,7 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
 
-A full review is `/code-review`, then `/test-review`, then `/challenge-review` over what they found.
+A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found.
 
 ---
 
@@ -130,6 +134,21 @@ Every subagent works in a scratch worktree, so it can't read plans or notes left
 
 ```
 /challenge-review [PR number | branch | base..head] [failure-paths,data-exposure,permissions | none]
+```
+
+---
+
+##### `drift-check`
+
+Finds what still believes the state a change removed:
+
+- **Removed names**: `removed_names.py` lists definitions the diff removed or renamed (functions, classes, keys and fields, flags, env vars, Terraform blocks, headings, files) and every remaining mention. The model then sorts each mention: stale doc, misleading comment, possible dead reference, or expected.
+- **Workflow path filters**: `workflow_paths.py` finds files a GitHub workflow uses, directly or through a called workflow, that its own `paths:` filter won't run for.
+
+Neither script hardcodes a repo layout: a token counts as a path only if it names a tracked file or folder. Data, lock and binary files are never read, and the project's off-limits paths go in with `--exclude`. The scripts need Python 3 and PyYAML.
+
+```
+/drift-check [PR number | branch | base..head]
 ```
 
 ---
