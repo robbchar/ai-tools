@@ -126,7 +126,7 @@ A full review is `/code-review`, `/test-review` and `/drift-check`, then `/chall
 
 ##### `deep-review`
 
-Runs the review flow in one command: the finders in parallel (`/test-review` and `/drift-check` as background subagents while `/code-review` runs), then `/challenge-review` over everything they found. It ends with a numbered fix list and changes nothing until you pick.
+Runs the review flow in one command: the finders in parallel (`/test-review` and `/drift-check` as background subagents while `/code-review` runs), then `/challenge-review` over everything they found. It ends with a fix list in priority order (P1 first, by what to do first) and changes nothing until you pick.
 
 ```
 /deep-review [PR number | branch | base..head] [quick | standard | full]

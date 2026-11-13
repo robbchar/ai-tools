@@ -39,7 +39,8 @@ The sibling skills live next to this one: `<this skill's folder>/../<name>/SKILL
 8. **Report, then stop.**
    - A header: target, base and head commits, level, and each reviewer with whether it ran.
    - `/challenge-review`'s report.
-   - **Fix list:** the surviving findings, numbered, most severe first, each with its fix. Mark an *unverified* Low "decide" rather than "fix".
+   - **Fix list**, P1 first: the surviving findings this change should fix, ranked by what the author should do first. Severity sets the starting order; move an item up when later work builds on it or it blocks the merge. Each item: `P<n>` · Blocking or Non-blocking · finding IDs · the fix · one clause on why it sits at that rank. Mark an *unverified* Low "decide" rather than "fix".
+   - **Not this change's to fix**, after the list: findings that belong to another PR in the stack, gaps older than the change (a spin-off ticket), and findings that no longer apply. Each says where it goes, or why it dropped.
 
    Fix, post or push nothing until the user picks from the list. Then remove the read-only checkout.
 
@@ -51,4 +52,5 @@ The sibling skills live next to this one: `<this skill's folder>/../<name>/SKILL
 | `/test-review` in the shared checkout | It edits code; it makes its own worktree |
 | Reporting a finder that failed as "found nothing" | "Did not run" |
 | Fixing before the user picks | Stop at the fix list |
+| Fix list sorted by severity alone | Rank by what to do first, with the reason |
 | `/code-review` at `max` or `ultra` by default | Only when the user asks |
