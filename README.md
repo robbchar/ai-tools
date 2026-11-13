@@ -25,12 +25,12 @@ ai-tools/
         │   ├── SKILL.md
         │   ├── adversary-prompt.md
         │   └── lenses/
-        ├── deep-review/
-        │   └── SKILL.md
         ├── drift-check/
         │   ├── SKILL.md
         │   ├── removed_names.py
         │   └── workflow_paths.py
+        ├── full-review/
+        │   └── SKILL.md
         └── test-review/
             └── SKILL.md
 ```
@@ -120,25 +120,25 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
 
-A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found. `/deep-review` runs that flow in one command.
+A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found. `/full-review` runs that flow in one command.
 
 ---
 
-##### `deep-review`
+##### `full-review`
 
 Runs the review flow in one command: the finders in parallel (`/test-review` and `/drift-check` as background subagents while `/code-review` runs), then `/challenge-review` over everything they found. It ends with a fix list in priority order (P1 first, by what to do first) and changes nothing until you pick.
 
 ```
-/deep-review [PR number | branch | base..head] [quick | standard | full]
+/full-review [PR number | branch | base..head] [quick | standard | deep]
 ```
 
 | Level | Runs | Roughly |
 |---|---|---|
 | `quick` | a small, obvious change: `/code-review` (medium), then the audit | ~200–250k tokens, ~15–20 min |
 | `standard` (default) | anything complex: `/code-review` at xhigh, `/test-review`, and `/drift-check` when the diff removes or renames something or touches workflows | ~400–450k tokens, ~30–35 min |
-| `full` | auth, permissions, money, infrastructure or removals: also `/drift-check` every time and the three focus passes | ~750k+ tokens, ~35–45 min |
+| `deep` | auth, permissions, money, infrastructure or removals: also `/drift-check` every time and the three focus passes | ~750k+ tokens, ~35–45 min |
 
-The figures are for a PR of about 1,500 changed lines, estimated from timed runs of each part rather than a full run; a small PR takes roughly half as long. The finders run in parallel, so a level takes about as long as its slowest finder plus the audit, which grows with the number of findings it has to check.
+The figures are for a PR of about 1,500 changed lines, estimated from timed runs of each part rather than an end-to-end run; a small PR takes roughly half as long. The finders run in parallel, so a level takes about as long as its slowest finder plus the audit, which grows with the number of findings it has to check.
 
 ---
 
