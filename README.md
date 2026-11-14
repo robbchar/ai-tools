@@ -31,6 +31,8 @@ ai-tools/
         │   └── workflow_paths.py
         ├── full-review/
         │   └── SKILL.md
+        ├── ready-check/
+        │   └── SKILL.md
         └── test-review/
             └── SKILL.md
 ```
@@ -170,6 +172,18 @@ Neither script hardcodes a repo layout: a token counts as a path only if it name
 ```
 /drift-check [PR number | branch | base..head]
 ```
+
+---
+
+##### `ready-check`
+
+Says whether a ticket can go to an implementer subagent of a given model without that model making design calls or inventing facts. It reads the whole ticket, comments included, and checks every claim against the code. Any set the ticket names (stores, callers, stacks) it rebuilds from its source. Then it lists the decisions still open, each with a recommendation and whose call it is. It ends with a verdict and changes nothing.
+
+```
+/ready-check <ticket> [sonnet | haiku | opus]
+```
+
+The model defaults to `sonnet`. A run on a mid-sized ticket took about 140k tokens and 8 minutes.
 
 ---
 
