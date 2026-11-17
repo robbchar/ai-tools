@@ -203,6 +203,9 @@ Run it after `/code-review`, which looks for bugs in the code rather than gaps i
 
 ## Roadmap / Ideas
 
+The [plan for portable skills across Claude Code and Codex](docs/agent-portability-plan.md)
+proposes shared workflows and host adapters. Codex support is not implemented yet.
+
 This repo is intentionally open-ended. Some directions it could grow:
 
 - **Other Claude hooks** — PostToolUse, Notification, Stop
