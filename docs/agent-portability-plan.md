@@ -136,7 +136,7 @@ that yet: the teammate watches changes to `claude/skills/`.
 One follow-up PR adds the five wrappers and an install section in the README.
 Before it's ready:
 
-- `git diff main -- claude/` is empty.
+- `git diff main...HEAD -- claude/` is empty: the branch changes nothing there, however far `main` has moved.
 - Codex's `/skills` lists each of the five once, and `$review-agent` is
   installed. If it isn't, the `full-review` wrapper falls back to a short review
   brief for the subagent and says so in the report header.
