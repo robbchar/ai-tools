@@ -1,6 +1,6 @@
 ---
 name: test-review
-description: Use when reviewing a diff, branch or PR for whether its tests would catch the changed behavior breaking, such as after /code-review, before marking a PR ready, or when tests look thin, vacuous or written to fit their fixture.
+description: Use when reviewing a diff, branch or PR for whether its tests would catch the changed behavior breaking, such as after a code review, before marking a PR ready, or when tests look thin, vacuous or written to fit their fixture.
 ---
 
 # Test review
@@ -11,7 +11,11 @@ A test guards a behavior only if breaking that behavior makes it fail. Reading t
 
 ## Arguments
 
-`/test-review [target] [max-breaks]`. Target is a PR number, branch or `base..head` range; the default is the current branch against its merge base with the default branch. For a PR, fetch its head first. `max-breaks` defaults to 20.
+`test-review [target] [max-breaks]` (Claude: `/test-review`; Codex: `$test-review`). Target is a PR number, branch or `base..head` range; the default is the current branch against its merge base with the default branch. Pin the base and head; use the requested head for an explicit range. For a PR, fetch its head first. `max-breaks` defaults to 20.
+
+## Project rules
+
+Follow the host's project instructions (`CLAUDE.md` in Claude, `AGENTS.md` in Codex) and linked guidelines, including excluded paths. Keep those exclusions in all searches and experiments. If dependencies or test commands cannot run, report the affected behavior as **Not probed** and the review as incomplete.
 
 ## Procedure
 

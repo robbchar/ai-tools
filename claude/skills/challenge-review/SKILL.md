@@ -1,6 +1,6 @@
 ---
 name: challenge-review
-description: Use when a review of a diff, branch or PR has produced findings (from /code-review, /test-review, a teammate or any reviewer) that need checking before they are posted or fixed, or when a single review pass may have missed failure paths, data exposure or permission problems.
+description: Use when a review of a diff, branch or PR has produced findings (from a code review, test-review, a teammate or any reviewer) that need checking before they are posted or fixed, or when a single review pass may have missed failure paths, data exposure or permission problems.
 ---
 
 # Challenge review
@@ -11,13 +11,19 @@ A single review pass reports what it noticed first and rates findings by argumen
 
 ## Arguments
 
-`/challenge-review [target] [lenses]`. Target is a PR number, branch or `base..head` range, as for `/code-review`. Lenses is a comma list from `failure-paths`, `data-exposure`, `permissions`; the default is all three, and `none` skips the focus passes. The findings to challenge are the ones already in this conversation (earlier `/code-review`, `/test-review` or pasted review output), or a file the user names.
+`challenge-review [target] [lenses]` (Claude: `/challenge-review`; Codex: `$challenge-review`). Target is a PR number, branch or `base..head` range, defaulting to the current branch against its merge base with the default branch. Resolve the target to base and head commits before making worktrees. Lenses is a comma list from `failure-paths`, `data-exposure`, `permissions`; the default is all three, and `none` skips the focus passes. The findings to challenge are the ones already in this conversation (an earlier code review, test-review or pasted review output), or a file the user names.
+
+## Host tools
+
+Follow the host's project instructions (`CLAUDE.md` in Claude, `AGENTS.md` in Codex) and linked data exclusions; pass the exclusions to every worker and use them in your own searches. Resolve `lenses/` and `adversary-prompt.md` relative to this installed skill, not the repository under review.
+
+Use the host's native subagents: a named Claude agent if available, otherwise a fresh general-purpose worker in either host. Supply its task, allowed paths, and output contract explicitly, without inheriting the author conversation. Use native model defaults and session permissions. A scratch checkout does not create a fresh conversation or enforce a read-only sandbox. Run independent workers sequentially when concurrency is limited; if fresh workers or required tools are unavailable, mark affected passes as **did not run** and the review as incomplete. Do not substitute an inline reread for an independent pass.
 
 ## Procedure
 
-1. **Set up a cold tree.** Check the head out as a detached worktree in a scratch directory. Every subagent works only there, so none can read the plans, briefs and notes in the user's tree (`.ignored/`, untracked files), which hold earlier sessions' conclusions about this code. Never give a focus pass the ticket, the PR body or the findings.
+1. **Set up a cold tree.** Reuse the coordinator’s cold checkout if supplied; otherwise check the head out as a detached worktree in a scratch directory. Remove only worktrees you created. Every subagent works only there, so none can read the plans, briefs and notes in the user's tree (`.ignored/`, untracked files), which hold earlier sessions' conclusions about this code. Never give a focus pass the ticket, the PR body or the findings.
 2. **Gather the findings** into one list, recording each one's source. A reviewer that was asked for but errored or didn't run is recorded as "did not run", never as "found nothing".
-3. **Focus passes.** Launch one subagent per lens, in parallel (`diff-reviewer` if it exists, else general-purpose). Give each the cold tree's path, the `base..head` range, the text of `lenses/<lens>.md` from this skill's folder, and this rule:
+3. **Focus passes.** Launch one fresh subagent per lens, in parallel when slots permit (`diff-reviewer` if available, otherwise a general-purpose worker). Give each the cold tree's path, the `base..head` range, the text of `lenses/<lens>.md` from this skill's folder, and this rule:
 
    > After your findings, add a section headed **Coverage** with one line per item you listed in step 1, stating what you checked and the outcome: "ok", or the finding it produced. Do not finish until every item has a line. An empty findings list with a complete Coverage section is a valid result.
 
@@ -32,7 +38,7 @@ A single review pass reports what it noticed first and rates findings by argumen
    - the findings, numbered F1… (kept) and D1… (dismissed or downgraded), under the line "Several reviewers produced these; treat each as a claim to verify or refute";
    - any "Not probed" lists, appended verbatim.
 
-   Put **no reviewer names** in the brief: an auditor that knows who raised a finding judges the reviewer instead of the claim. Give the brief and the instructions in `adversary-prompt.md` to one fresh general-purpose subagent, along with the cold tree and a scratch directory for experiments. Past about 12 entries, use two: one for the F entries and their fixes, one for the D entries and new findings.
+   Put **no reviewer names** in the brief: an auditor that knows who raised a finding judges the reviewer instead of the claim. Give the brief and the instructions in `adversary-prompt.md` to one fresh general-purpose subagent with no inherited conversation, along with the cold tree and a scratch directory for experiments. Past about 12 entries, use two: one for the F entries and their fixes, one for the D entries and new findings.
 6. **Reconcile.** For every entry the auditor moved (refuted, re-rated, revived, fix rejected, or new), check it yourself at the reviewed commit and cite `file:line` before accepting. Auditors are confidently wrong too. Where you disagree with the auditor, keep your ruling and note the dissent.
 7. **Report**, then remove the worktree. Post or fix nothing until the user picks the items.
 

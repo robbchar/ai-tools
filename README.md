@@ -1,11 +1,13 @@
 # ai-tools
 
-A collection of utilities, hooks, and scripts for working with AI tools and platforms. Currently focused on [Claude Code](https://docs.anthropic.com/en/docs/claude-code), with room to grow.
+A collection of utilities, hooks, and scripts for working with AI tools and platforms. The review skills work in Claude Code and Codex; hooks, native agent definitions, and mods are Claude-specific.
 
 ## Structure
 
 ```
 ai-tools/
+├── docs/
+│   └── skills.md
 └── claude/
     ├── Claude.md
     ├── agents/
@@ -118,29 +120,29 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 ---
 
-### Skills
+## Skills
 
-Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
+Use the same folders in `claude/skills/` for Claude Code and Codex. See [installation and usage](docs/skills.md) for both hosts, dependencies, and model defaults. The examples below use Claude’s `/name` syntax; in Codex use `$name`.
 
-A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found. `/full-review` runs that flow in one command.
+A full review runs a baseline code review, test-review and drift-check, then challenge-review over their findings. An existing compatible code-review skill is optional: full-review includes a brief for a fresh reviewer when none is installed.
 
 ---
 
 ##### `full-review`
 
-Runs the review flow in one command: the finders in parallel (`/test-review` and `/drift-check` as background subagents while `/code-review` runs), then `/challenge-review` over everything they found. It ends with a fix list in priority order (P1 first, by what to do first) and changes nothing until you pick.
+Runs the review flow in one command: the finders in parallel (test-review and drift-check while the baseline reviewer works, within the host’s worker limits), then `/challenge-review` over everything they found. It ends with a fix list in priority order (P1 first, by what to do first) and changes nothing until you pick.
 
 ```
 /full-review [PR number | branch | base..head] [quick | standard | deep]
 ```
 
-| Level | Runs | Roughly |
-|---|---|---|
-| `quick` | a small, obvious change: `/code-review` (medium), then the audit | ~200–250k tokens, ~15–20 min |
-| `standard` (default) | anything complex: `/code-review` at xhigh, `/test-review`, and `/drift-check` when the diff removes or renames something or touches workflows | ~400–450k tokens, ~30–35 min |
-| `deep` | auth, permissions, money, infrastructure or removals: also `/drift-check` every time and the three focus passes | ~750k+ tokens, ~35–45 min |
+| Level | Runs |
+|---|---|
+| `quick` | a small, obvious change: baseline code review, then the audit |
+| `standard` (default) | anything complex: baseline review, test-review, and drift-check when workflows change or removed names still have references |
+| `deep` | auth, permissions, money, infrastructure or removals: also drift-check every time and the three focus passes |
 
-The figures are for a PR of about 1,500 changed lines, estimated from timed runs of each part rather than an end-to-end run; a small PR takes roughly half as long. The finders run in parallel, so a level takes about as long as its slowest finder plus the audit, which grows with the number of findings it has to check.
+Levels select review coverage; models and reasoning use the host’s native defaults, including any configured named agent. Runtime and cost depend on the diff, test suite, available workers, and those settings. Separate workers can run sequentially when concurrency is limited.
 
 ---
 
@@ -177,13 +179,13 @@ Neither script hardcodes a repo layout: a token counts as a path only if it name
 
 ##### `ready-check`
 
-Says whether a ticket can go to an implementer subagent of a given model without that model making design calls or inventing facts. It reads the whole ticket, comments included, and checks every claim against the code. Any set the ticket names (stores, callers, stacks) it rebuilds from its source. Then it lists the decisions still open, each with a recommendation and whose call it is. It ends with a verdict and changes nothing.
+Says whether a ticket is ready for a transcription, specified, or design handoff without the implementer inventing facts or making decisions outside that profile. It reads the whole ticket, comments included, and checks every claim against the code. Any set the ticket names (stores, callers, stacks) it rebuilds from its source. Then it lists the decisions still open, each with a recommendation and whose call it is. It ends with a verdict and changes nothing.
 
 ```
-/ready-check <ticket> [sonnet | haiku | opus]
+/ready-check <ticket> [transcription | specified | design] [intended-model]
 ```
 
-The model defaults to `sonnet`. A run on a mid-sized ticket took about 140k tokens and 8 minutes.
+The profile defaults to `specified`. Existing `haiku`, `sonnet`, and `opus` arguments remain aliases for the three profiles; they do not switch models. An optional intended model is context, not a capability guarantee.
 
 ---
 
@@ -191,7 +193,7 @@ The model defaults to `sonnet`. A run on a mid-sized ticket took about 140k toke
 
 Checks whether a change's tests would fail if the behavior they cover broke. It works in a scratch worktree: it lists each rule the diff adds or changes, breaks each one twice (removes it, then miswires it), runs the related tests, and reports every break that no test catches. It also reads the new assertions for expected values built with the code under test, text matched anywhere in a row, and counts that don't check which items.
 
-Run it after `/code-review`, which looks for bugs in the code rather than gaps in the tests:
+Run it after a code review, which looks for bugs in the code rather than gaps in the tests:
 
 ```
 /test-review [PR number | branch | base..head] [max-breaks]
