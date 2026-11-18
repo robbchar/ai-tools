@@ -102,12 +102,14 @@ Everything else applies as written, including "did not run" and stopping at the 
 
 ## Install (macOS or Linux)
 
-Clone the repo somewhere permanent, since the links point into it:
+Set `AI_TOOLS` to wherever you want the clone, and keep it there: the links
+point into it. Nothing else depends on where it lives.
 
 ```bash
-git clone https://github.com/robbchar/ai-tools.git ~/Projects/ai-tools
+AI_TOOLS=~/code/ai-tools
+git clone https://github.com/robbchar/ai-tools.git "$AI_TOOLS"
 mkdir -p ~/.agents/skills
-for d in ~/Projects/ai-tools/codex/skills/*/; do ln -s "${d%/}" ~/.agents/skills/; done
+for d in "$AI_TOOLS"/codex/skills/*/; do ln -s "${d%/}" ~/.agents/skills/; done
 ```
 
 Then start a new Codex session. `git pull` updates both the Claude skills and the
