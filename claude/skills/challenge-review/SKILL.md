@@ -30,6 +30,7 @@ A single review pass reports what it noticed first and rates findings by argumen
    - what is under review and the head commit;
    - the severity scale;
    - the findings, numbered F1… (kept) and D1… (dismissed or downgraded), under the line "Several reviewers produced these; treat each as a claim to verify or refute";
+   - for an entry about text outside the cold tree (a PR body, a ticket), the passage it is about, quoted, since the auditor may not read those;
    - any "Not probed" lists, appended verbatim.
 
    Put **no reviewer names** in the brief: an auditor that knows who raised a finding judges the reviewer instead of the claim. Give the brief and the instructions in `adversary-prompt.md` to one fresh general-purpose subagent, along with the cold tree and a scratch directory for experiments. Past about 12 entries, use two: one for the F entries and their fixes, one for the D entries and new findings.
@@ -55,4 +56,5 @@ A single review pass reports what it noticed first and rates findings by argumen
 | Naming reviewers in the brief | Number the claims; keep sources in your own notes |
 | Ranking High on argument alone | Repro or uncaught break, or cap at Low *unverified* |
 | Accepting the auditor's verdict unchecked | Verify every moved entry at the reviewed commit |
+| Letting the auditor read outside the cold tree | `adversary-prompt.md` limits it to the cold tree, the scratch dir and the brief; quote any outside text an entry is about |
 | Reporting a failed pass as "found nothing" | "Did not run" |
