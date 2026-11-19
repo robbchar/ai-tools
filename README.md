@@ -203,8 +203,9 @@ Run it after `/code-review`, which looks for bugs in the code rather than gaps i
 
 ## Roadmap / Ideas
 
-The [plan for using the existing skills in Codex](docs/agent-portability-plan.md)
-proposes small instruction changes and installation docs. Codex support is not implemented yet.
+The [plan for using the skills in Codex](docs/agent-portability-plan.md)
+adds thin Codex wrappers that point back at the Claude skills, which stay unchanged.
+Codex support is not implemented yet.
 
 This repo is intentionally open-ended. Some directions it could grow:
 
