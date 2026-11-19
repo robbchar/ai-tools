@@ -31,6 +31,11 @@ ai-tools/
         │   └── workflow_paths.py
         ├── full-review/
         │   └── SKILL.md
+        ├── memory-upkeep/
+        │   ├── SKILL.md
+        │   ├── memory_lint.py
+        │   ├── memory_lint_hook.py
+        │   └── pr_status.py
         ├── ready-check/
         │   └── SKILL.md
         └── test-review/
@@ -141,6 +146,35 @@ Runs the review flow in one command: the finders in parallel (`/test-review` and
 | `deep` | auth, permissions, money, infrastructure or removals: also `/drift-check` every time and the three focus passes | ~750k+ tokens, ~35–45 min |
 
 The figures are for a PR of about 1,500 changed lines, estimated from timed runs of each part rather than an end-to-end run; a small PR takes roughly half as long. The finders run in parallel, so a level takes about as long as its slowest finder plus the audit, which grows with the number of findings it has to check.
+
+---
+
+##### `memory-upkeep`
+
+Keeps Claude Code's auto-memory small, current and lossless: where it lives, what an "update memory" pass does, and the entry shapes. `memory_lint.py` checks a memory folder (load caps, unreachable or duplicate pointers, wrong counts, stray files), and `pr_status.py` prints the live state of the PRs named in `MEMORY.md`'s Active work section.
+
+An optional PostToolUse hook lints after each memory Edit/Write. Add to your `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$HOME/.claude/skills/memory-upkeep/memory_lint_hook.py\"; [ -f \"$f\" ] && python3 \"$f\" || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+For a project that sets `autoMemoryDirectory`, append `--dir <absolute path>` after the script path (`~` isn't expanded inside quotes).
 
 ---
 
