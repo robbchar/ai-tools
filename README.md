@@ -125,7 +125,7 @@ Opens a terminal at the directory Claude is working in: a band above the prompt 
 
 ### Skills
 
-Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`.
+Personal skills for Claude Code. Install one by copying or symlinking its folder into `~/.claude/skills/`; it then runs as `/<name>`. To run them from Codex, see [codex/README.md](codex/README.md).
 
 A full review is `/code-review`, `/test-review` and `/drift-check`, then `/challenge-review` over what they found. `/full-review` runs that flow in one command.
 
@@ -237,9 +237,9 @@ Run it after `/code-review`, which looks for bugs in the code rather than gaps i
 
 ## Roadmap / Ideas
 
-The [plan for using the skills in Codex](docs/agent-portability-plan.md)
-adds thin Codex wrappers that point back at the Claude skills, which stay unchanged.
-Codex support is not implemented yet.
+Codex wrappers for the skills are in [codex/](codex/README.md), following the
+[plan for using the skills in Codex](docs/agent-portability-plan.md). They haven't
+been run in Codex itself yet.
 
 This repo is intentionally open-ended. Some directions it could grow:
 
