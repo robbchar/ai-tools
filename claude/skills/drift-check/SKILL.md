@@ -11,11 +11,11 @@ Two searches a reviewer shouldn't have to do by hand. Both start from the diff a
 
 ## Arguments
 
-`/drift-check [target]`. Target is a PR number, branch or `base..head` range; the default is the current branch against its merge base with the default branch. For a PR, fetch its head and its body (`gh pr view <N> --json body`): the PR text can be stale too.
+`drift-check [target]` (Claude: `/drift-check`; Codex: `$drift-check`). Target is a PR number, branch or `base..head` range; the default is the current branch against its merge base with the default branch. Pin the base and head; run helpers against a checkout of that head (reuse a supplied cold checkout, or create and later remove your own detached scratch worktree). For a PR, fetch its head and its body (`gh pr view <N> --json body`): the PR text can be stale too.
 
 ## Before reading anything
 
-Read the project's CLAUDE.md, and any data rules it points to, for paths that must never be read, such as sensitive or seed data. Pass each one to `removed_names.py` as `--exclude <pathspec>`; it already skips data, fixture, lock and binary files, and prints the full exclusion list as `git grep` pathspecs. **Every search you run yourself uses those same pathspecs.** `workflow_paths.py` reads only workflow YAML and Terraform files. Run both as `python3 -I <this skill's folder>/<script>.py`.
+Follow the host's project instructions (`CLAUDE.md` in Claude, `AGENTS.md` in Codex), including linked guidelines and data rules, for paths that must never be read, such as sensitive or seed data. Pass each one to `removed_names.py` as `--exclude <pathspec>`; it already skips data, fixture, lock and binary files, and prints the full exclusion list as `git grep` pathspecs. **Every search you run yourself uses those same pathspecs.** `workflow_paths.py` reads only workflow YAML and Terraform files. Resolve this skill's installed directory and run both as `python3 -I "<installed skill directory>/<script>.py"`, so a checkout location or spaces in its path do not matter. If Python or PyYAML is unavailable, mark the affected check as not run and the review as incomplete.
 
 ## Check A: names the diff removed
 
