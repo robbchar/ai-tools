@@ -103,7 +103,29 @@ describe('seasonal-theme', () => {
 
     const svg = await drawnScene($)
     expect(svg).toContain('data-level="3"')
+    expect(svg).toContain('data-fill="80"')
     expect(svg).toContain('class="heap grow"')
+  })
+
+  test('each 5% step of a later reading grows the pile again', async ($, on) => {
+    engine(on)
+    await start($)
+    await $.session.measure(reading(31))
+    await $.session.measure(reading(37))
+
+    expect(await drawnScene($)).toContain('data-fill="35"')
+  })
+
+  test('a pile an older version stored is replaced, not misread', async ($, on) => {
+    engine(on)
+    // What the code before the 5% steps stored: no fill, under the old tag.
+    on('state.get', (_, e, next) =>
+      e.key === 'pile'
+        ? { value: { value: { shape: 'pile-1', value: { level: 3, from: 3, transition: 'none', seed: 1 } }, version: 1 } }
+        : next(e),
+    )
+
+    expect(await drawnScene($)).toContain('data-fill="0"')
   })
 
   test('crossing 90% dives, and a compact scatters the pile', async ($, on) => {

@@ -6,8 +6,9 @@ import { renderScene, sceneProblems } from '../scene'
 
 import { SEASONS } from './index'
 
-const LEVELS: readonly Level[] = [0, 1, 2, 3, 4]
-const MOVES: readonly [Transition, Level][] = [['none', 0], ['grow', 0], ['shrink', 4], ['dive', 3], ['scatter', 4]]
+const FILLS = Array.from({ length: 21 }, (_, i) => i * 5)
+const levelAt = (fill: number): Level => (fill >= 90 ? 4 : fill >= 75 ? 3 : fill >= 50 ? 2 : fill >= 25 ? 1 : 0)
+const MOVES: readonly [Transition, number][] = [['none', 0], ['grow', 0], ['shrink', 100], ['dive', 85], ['scatter', 100]]
 
 for (const season of SEASONS) {
   describe(season.id, () => {
@@ -18,11 +19,11 @@ for (const season of SEASONS) {
     })
 
     test('every level and move draws a scene the engine accepts', () => {
-      for (const level of LEVELS) {
-        for (const [transition, from] of MOVES) {
-          const svg = renderScene(season.art, { level, from, transition, seed: 12345 })
+      for (const fill of FILLS) {
+        for (const [transition, fromFill] of MOVES) {
+          const view = { level: levelAt(fill), fill, from: levelAt(fromFill), fromFill, transition, seed: 12345 }
 
-          expect(sceneProblems(svg)).toEqual([])
+          expect(sceneProblems(renderScene(season.art, view))).toEqual([])
         }
       }
     })

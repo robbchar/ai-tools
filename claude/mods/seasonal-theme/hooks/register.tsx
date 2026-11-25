@@ -15,8 +15,8 @@ const PLUGIN = 'seasonal-theme'
 // Change a shape tag when its value's fields change: a reload keeps what older code stored.
 const pileAtom = atom(
   { plugin: 'seasonal-theme', key: 'pile' } as const,
-  { level: 0, from: 0, transition: 'none', seed: 0 } satisfies PileView as PileView,
-  { shape: 'pile-1' },
+  { level: 0, fill: 0, from: 0, fromFill: 0, transition: 'none', seed: 0 } satisfies PileView as PileView,
+  { shape: 'pile-2' },
 )
 const readingAtom = atom(
   { plugin: 'seasonal-theme', key: 'reading' } as const,

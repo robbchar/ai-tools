@@ -2,9 +2,15 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { PileView, Reading } from '../types'
 
-import { describeReading, levelFor, parseLeaves, settle } from './pile'
+import { describeReading, fillFor, levelFor, parseLeaves, settle } from './pile'
 
-const view = (level: PileView['level']): PileView => ({ level, from: level, transition: 'none', seed: 1 })
+// A settled view at a percent, as the mod would hold it.
+const at = (percent: number | null): PileView => {
+  const level = levelFor(percent)
+  const fill = fillFor(percent)
+
+  return { level, fill, from: level, fromFill: fill, transition: 'none', seed: 1 }
+}
 const live = (percent: number | null): Reading => ({ live: percent, preview: null })
 
 describe('levelFor', () => {
@@ -26,42 +32,67 @@ describe('levelFor', () => {
   })
 })
 
+describe('fillFor', () => {
+  test('rounds down to a 5% step', () => {
+    expect(fillFor(0)).toBe(0)
+    expect(fillFor(4.9)).toBe(0)
+    expect(fillFor(5)).toBe(5)
+    expect(fillFor(37.2)).toBe(35)
+    expect(fillFor(99.9)).toBe(95)
+    expect(fillFor(100)).toBe(100)
+  })
+
+  test('no reading is empty', () => {
+    expect(fillFor(null)).toBe(0)
+  })
+})
+
 describe('settle', () => {
-  test('staying in the same band asks for no redraw', () => {
-    expect(settle(view(1), live(30), live(40), 7)).toBeNull()
+  test('staying within a 5% step asks for no redraw', () => {
+    expect(settle(at(31), live(31), live(34.9), 7)).toBeNull()
   })
 
-  test('rising a band grows from the old level', () => {
-    expect(settle(view(1), live(40), live(55), 7)).toEqual({ level: 2, from: 1, transition: 'grow', seed: 7 })
+  test('each 5% step grows the pile, within a level too', () => {
+    expect(settle(at(31), live(31), live(36), 7)).toEqual({
+      level: 1, fill: 35, from: 1, fromFill: 30, transition: 'grow', seed: 7,
+    })
   })
 
-  test('jumping several bands still grows from where it was', () => {
-    expect(settle(view(0), live(null), live(80), 7)).toEqual({ level: 3, from: 0, transition: 'grow', seed: 7 })
+  test('jumping several steps grows from where it was', () => {
+    expect(settle(at(null), live(null), live(80), 7)).toEqual({
+      level: 3, fill: 80, from: 0, fromFill: 0, transition: 'grow', seed: 7,
+    })
   })
 
-  test('reaching the wrap-up band dives', () => {
-    expect(settle(view(3), live(85), live(92), 7)?.transition).toBe('dive')
-    expect(settle(view(1), live(30), live(95), 7)?.transition).toBe('dive')
+  test('reaching the wrap-up level dives', () => {
+    expect(settle(at(85), live(85), live(92), 7)?.transition).toBe('dive')
+    expect(settle(at(30), live(30), live(95), 7)?.transition).toBe('dive')
+  })
+
+  test('growing within the wrap-up level just grows', () => {
+    expect(settle(at(91), live(91), live(96), 7)?.transition).toBe('grow')
   })
 
   test('a big drop, as after a compact, scatters', () => {
-    expect(settle(view(4), live(93), live(12), 7)).toEqual({ level: 0, from: 4, transition: 'scatter', seed: 7 })
+    expect(settle(at(93), live(93), live(12), 7)).toEqual({
+      level: 0, fill: 10, from: 4, fromFill: 90, transition: 'scatter', seed: 7,
+    })
   })
 
   test('the reading going missing, as right after a compact, scatters', () => {
-    expect(settle(view(2), live(60), live(null), 7)?.transition).toBe('scatter')
+    expect(settle(at(60), live(60), live(null), 7)?.transition).toBe('scatter')
   })
 
-  test('slipping just under a band edge shrinks instead of scattering', () => {
-    expect(settle(view(2), live(50.4), live(49.6), 7)?.transition).toBe('shrink')
+  test('slipping just under a step edge shrinks instead of scattering', () => {
+    expect(settle(at(50.4), live(50.4), live(49.6), 7)?.transition).toBe('shrink')
   })
 
   test('a preview stands in for the live reading, and clearing it returns to live', () => {
-    const previewed = settle(view(1), live(30), { live: 30, preview: 95 }, 7)
-    expect(previewed?.level).toBe(4)
+    const previewed = settle(at(30), live(30), { live: 30, preview: 95 }, 7)
+    expect(previewed?.fill).toBe(95)
 
-    const back = settle(view(4), { live: 30, preview: 95 }, live(30), 8)
-    expect(back).toEqual({ level: 1, from: 4, transition: 'scatter', seed: 8 })
+    const back = settle(at(95), { live: 30, preview: 95 }, live(30), 8)
+    expect(back).toEqual({ level: 1, fill: 30, from: 4, fromFill: 95, transition: 'scatter', seed: 8 })
   })
 })
 

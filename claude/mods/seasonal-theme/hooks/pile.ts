@@ -3,22 +3,27 @@ import type { Level, PileView, Reading, Transition } from '../types'
 // Lower bound of each level, in percent of the context window.
 const BANDS: readonly [Level, number][] = [[4, 90], [3, 75], [2, 50], [1, 25]]
 
-// A fall at least this big is a compact or clear, not drift at a band edge.
+// The pile's size moves in steps this big, so it doesn't redraw on every tiny change.
+const STEP = 5
+
+// A fall at least this big is a compact or clear, not drift at a step edge.
 const SCATTER_DROP = 10
 
 export const levelFor = (percent: number | null): Level =>
   percent === null ? 0 : (BANDS.find(([, floor]) => percent >= floor)?.[0] ?? 0)
 
+export const fillFor = (percent: number | null): number =>
+  percent === null ? 0 : Math.min(100, Math.floor(percent / STEP) * STEP)
+
 export const effectivePercent = (reading: Reading): number | null => reading.preview ?? reading.live
 
-const transitionTo = (
-  from: Level,
-  level: Level,
-  before: number | null,
-  after: number | null,
-): Transition => {
-  if (level > from) {
-    return level === 4 ? 'dive' : 'grow'
+const transitionTo = (view: PileView, level: Level, fill: number, before: number | null, after: number | null): Transition => {
+  if (level === 4 && view.level < 4) {
+    return 'dive'
+  }
+
+  if (fill > view.fill) {
+    return 'grow'
   }
 
   const isBigDrop = after === null || (before !== null && before - after >= SCATTER_DROP)
@@ -30,15 +35,18 @@ const transitionTo = (
 export const settle = (view: PileView, before: Reading, after: Reading, seed: number): PileView | null => {
   const percent = effectivePercent(after)
   const level = levelFor(percent)
+  const fill = fillFor(percent)
 
-  if (level === view.level) {
+  if (level === view.level && fill === view.fill) {
     return null
   }
 
   return {
     level,
+    fill,
     from: view.level,
-    transition: transitionTo(view.level, level, effectivePercent(before), percent),
+    fromFill: view.fill,
+    transition: transitionTo(view, level, fill, effectivePercent(before), percent),
     seed,
   }
 }

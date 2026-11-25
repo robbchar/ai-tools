@@ -26,6 +26,10 @@ export type SceneArt = {
   }
   // What drifts down now and then: leaves, snowflakes, petals.
   drifter: { piece: PieceArt; colors: readonly string[] }
+  // Still art in the bottom-left corner, on a 1000-unit stage with the ground at y=985.
+  // Groups classed `far` are drawn faint, as if in the distance. Drifters on the left
+  // fall from the `dropFrom` points, such as a tree's branches.
+  scenery: { markup: string; dropFrom: readonly { x: number; y: number }[] }
   // Faces left with feet on y=0, about 90 units tall. Groups classed `head`,
   // `leg-a` and `leg-b` are animated, so they carry no transform attribute.
   wanderer: {
