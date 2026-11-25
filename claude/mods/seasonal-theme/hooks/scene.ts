@@ -11,7 +11,8 @@ const GROUND_Y = 985
 const PILE_X = 850
 const HALF_WIDTH = 112
 const TOWER_MAX = 880
-const PECK_X = 620
+const PECK_X = 585
+const SIGN_X = 668
 const OFFSTAGE_X = 1120
 const VISIT_SECONDS = 120
 const PIECE_SCALE = 1.65
@@ -19,7 +20,7 @@ const TEETER_FROM = 50
 const EDGE_GAP = 22
 const GUST_LEAVES = 9
 const SWIRL_LEAVES = 22
-const FAR_CLUSTERS = [17, 31, 44, 58, 71, 85]
+const FAR_CLUSTERS = [18, 29, 40, 51, 62, 73]
 
 const isWarm = (level: Level) => level >= 3
 
@@ -518,8 +519,10 @@ const groundMarkup = (art: SceneArt, view: PileView, side: Side): string => {
   }).join('')
 }
 
-// Far trees lose their leaves in three steps, less often than the big tree.
-const farFullness = (fill: number) => (fill >= 90 ? 0 : fill >= 60 ? 0.33 : fill >= 30 ? 0.66 : 1)
+// Far trees lose their leaves in three steps, less often than the big tree; the sign
+// collects leaves on the same steps.
+const farStep = (fill: number) => (fill >= 90 ? 3 : fill >= 60 ? 2 : fill >= 30 ? 1 : 0)
+const farFullness = (fill: number) => [1, 0.66, 0.33, 0][farStep(fill)] ?? 0
 
 // A few tiny leaves falling from a far cluster, in its 120 by 100 box.
 const farDrops = (art: SceneArt, cluster: number): string =>
@@ -557,16 +560,51 @@ const distanceMarkup = (art: SceneArt, view: PileView): string => {
   )
 }
 
+// Where leaves stick to the sign's frame, two more at each far step: x, y, turn.
+const STUCK: readonly [number, number, number][] = [
+  [44, -52, 30], [-40, 2, 200], [46, 0, 120], [-6, -56, 80], [-48, -26, 250], [20, 4, 10],
+]
+
+// A wooden sign on a post beside the tower, showing the context percent.
+const signMarkup = (art: SceneArt, view: PileView): string => {
+  const text = view.percent === null ? '—' : `${view.percent}%`
+  const stuck = STUCK.slice(0, farStep(view.fill) * 2).map(([x, y, turn], i) =>
+    placed({ x: SIGN_X + x, y: 886 + y, turn, i }, `<g class="stuck">${art.pile.piece(pick(art.drifter.colors, i + 2) ?? '', i)}</g>`, 1.1),
+  )
+
+  return (
+    `<g class="sign${isWarm(view.level) ? ' warn' : ''}">` +
+    `<rect class="post" x="${SIGN_X - 5}" y="880" width="10" height="${GROUND_Y - 880}"/>` +
+    `<rect class="board" x="${SIGN_X - 50}" y="830" width="100" height="58" rx="6"/>` +
+    `<path class="grain" d="M${SIGN_X - 42} 846h30M${SIGN_X + 10} 876h32"/>` +
+    `<g transform="translate(${SIGN_X - 44} 834)">${art.sign.ornament}</g>` +
+    `<text class="numerals" x="${SIGN_X}" y="866" text-anchor="middle" font-family="Georgia, serif" font-size="30" font-weight="700">${text}</text>` +
+    `<text class="caption" x="${SIGN_X}" y="881" text-anchor="middle" font-family="Georgia, serif" font-size="11" letter-spacing="1.5">CONTEXT</text>` +
+    `${stuck.join('')}</g>`
+  )
+}
+
+// What a reader who can't see the backdrop is told: the scene, then the percent.
+export const altFor = (art: SceneArt, view: PileView): string =>
+  view.percent === null ? art.describe(view.level) : `${art.describe(view.level)} ${view.percent}% of the context window is used.`
+
 const baseCss = (art: SceneArt, level: Level): Parts => {
   const ground = modeRule('.ground', 'fill', art.ground)
   const mound = modeRule('.mound', 'fill', isWarm(level) ? art.pile.warmMound : art.pile.mound)
   const field = modeRule('.field', 'fill', art.distance.field)
+  const wood = modeRule('.board', 'fill', art.sign.wood)
+  const ink = modeRule('.numerals,.caption', 'fill', art.sign.ink)
+  const warmInk = modeRule('.warn .numerals', 'fill', art.sign.warmInk)
 
   return {
     css: [
       ground.light,
       mound.light,
       field.light,
+      wood.light,
+      ink.light,
+      warmInk.light,
+      '.sign{opacity:.94}.post{fill:#7a5230}.board{stroke:#7a5230;stroke-width:3}.grain{stroke:#7a5230;stroke-opacity:.25;stroke-width:1.5}.caption{opacity:.75}',
       '.art{opacity:.8}',
       '.far{opacity:.55}',
       '.distance{opacity:.38}',
@@ -606,7 +644,7 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
       '.wiggle{transform-box:fill-box;transform-origin:50% 100%;animation:wiggle 9s ease-in-out infinite}',
       '@keyframes wiggle{0%,88%{transform:none}92%{transform:rotate(-6deg)}96%{transform:rotate(5deg)}100%{transform:none}}',
     ],
-    dark: [ground.dark, mound.dark, field.dark, '.art{opacity:.62}', '.far{opacity:.4}', '.distance{opacity:.3}'],
+    dark: [ground.dark, mound.dark, field.dark, wood.dark, ink.dark, warmInk.dark, '.art{opacity:.62}', '.far{opacity:.4}', '.distance{opacity:.3}'],
   }
 }
 
@@ -661,7 +699,8 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMinYMax meet"><g class="art">' +
     `<g class="scenery">${art.scenery.markup}</g>${treeMarkup(art, view)}${groundMarkup(art, view, 'left')}${leftLane}</g></svg>` +
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMaxYMax meet"><g class="art">' +
-    `${shadow}${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}${towerPart}${collapse}${rightLane}${wanderer}</g></svg>` +
+    `${shadow}${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}${towerPart}${collapse}${rightLane}${wanderer}</g>` +
+    `${signMarkup(art, view)}</svg>` +
     (flights === '' ? '' : `<g class="art">${flights}</g>`) +
     '</svg>'
   )

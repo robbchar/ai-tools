@@ -3,10 +3,10 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { PileView, Reading } from '../types'
 
-import { badgeFor } from './environment'
+import { badgeFor, statusLine } from './environment'
 import { makeColors } from './make-colors.js'
 import { describeReading, parseLeaves, settle } from './pile'
-import { renderScene } from './scene'
+import { altFor, renderScene } from './scene'
 import { parseChoice, pickSeason } from './season'
 import { AVAILABLE, seasonById } from './seasons'
 
@@ -15,8 +15,8 @@ const PLUGIN = 'seasonal-theme'
 // Change a shape tag when its value's fields change: a reload keeps what older code stored.
 const pileAtom = atom(
   { plugin: 'seasonal-theme', key: 'pile' } as const,
-  { level: 0, fill: 0, from: 0, fromFill: 0, transition: 'none', seed: 0 } satisfies PileView as PileView,
-  { shape: 'pile-2' },
+  { level: 0, fill: 0, percent: null, from: 0, fromFill: 0, transition: 'none', seed: 0 } satisfies PileView as PileView,
+  { shape: 'pile-3' },
 )
 const readingAtom = atom(
   { plugin: 'seasonal-theme', key: 'reading' } as const,
@@ -24,7 +24,7 @@ const readingAtom = atom(
   { shape: 'reading-1' },
 )
 
-// Moves the reading; redraws the backdrop only when the pile changes level.
+// Moves the reading; redraws the backdrop only when what it shows changes.
 const applyReading = async ($: EngineInterface, change: (reading: Reading) => Reading) => {
   const before = await read($, readingAtom)
   const after = await update($, readingAtom, change)
@@ -41,6 +41,8 @@ const isOurs = (plugin: string) => plugin === PLUGIN || plugin.startsWith(`${PLU
 
 export const register: Register = (on, options) => {
   const choice = parseChoice(options.season)
+  // Set at each session start, which a reload runs again.
+  let badge: string | undefined
 
   on('session.start', async ($, e, next) => {
     const season = seasonById(pickSeason(choice, new Date(await $.clock.now()), AVAILABLE))
@@ -57,7 +59,7 @@ export const register: Register = (on, options) => {
       $.ui.log(`${PLUGIN}: ${String(error)}`)
     }
 
-    $.ui.status(badgeFor((await $.session.info()).platform))
+    badge = badgeFor((await $.session.info()).platform)
     await $.command.register({
       name: 'leaves',
       description: 'Preview the seasonal pile at a context fill (/leaves 80), or go back to live (/leaves off)',
@@ -66,14 +68,16 @@ export const register: Register = (on, options) => {
 
     // A resumed session starts with its pile already sized.
     const { context } = await $.session.usage()
-    await applyReading($, reading => ({ ...reading, live: context.percent ?? reading.live }))
+    const reading = await applyReading($, current => ({ ...current, live: context.percent ?? current.live }))
+    $.ui.status(statusLine(badge, reading))
 
     return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) {
-      await applyReading($, reading => ({ ...reading, live: e.context.percent ?? null }))
+      const reading = await applyReading($, current => ({ ...current, live: e.context.percent ?? null }))
+      $.ui.status(statusLine(badge, reading))
     }
 
     return next(e)
@@ -92,6 +96,7 @@ export const register: Register = (on, options) => {
 
     const preview = parsed.kind === 'preview' ? parsed.percent : null
     const reading = await applyReading($, current => ({ ...current, preview }))
+    $.ui.status(statusLine(badge, reading))
 
     return { text: describeReading(reading) }
   })
@@ -105,6 +110,6 @@ export const register: Register = (on, options) => {
     const view = await read($, pileAtom)
     const { Svg } = $.ui.resolve(e)
 
-    return <Svg source={renderScene(season.art, view)} alt={season.art.describe(view.level)} isInteractive />
+    return <Svg source={renderScene(season.art, view)} alt={altFor(season.art, view)} isInteractive />
   })
 }

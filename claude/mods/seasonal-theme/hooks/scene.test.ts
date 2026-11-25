@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { PileView, Transition } from '../types'
 
 import { fillFor, levelFor } from './pile'
-import { renderScene, sceneProblems } from './scene'
+import { altFor, renderScene, sceneProblems } from './scene'
 import type { SceneArt } from './seasons/types'
 
 // A plain stand-in season: shows the scene works with any art.
@@ -27,6 +27,12 @@ const art: SceneArt = {
     tree: { branches: '<path class="bough" d="M200 985V500"/>', clumps: CLUMPS, colors: ['#884400'], lastLeaf: { x: 300, y: 480 } },
   },
   distance: { field: { light: '#dddddd', dark: '#222222' }, trees: fullness => `<circle class="far-tree" data-full="${fullness}" r="9"/>` },
+  sign: {
+    wood: { light: '#eeddcc', dark: '#332211' },
+    ink: { light: '#221100', dark: '#ffeedd' },
+    warmInk: { light: '#990000', dark: '#ff8866' },
+    ornament: '<circle class="acorn" r="3"/>',
+  },
   wanderer: {
     body: '<g class="head"><circle r="3"/></g><g class="leg-a"><path d="M0 0v5"/></g><g class="leg-b"><path d="M2 0v5"/></g>',
     peek: '<path class="tail" d="M0 0l5 -9"/>',
@@ -37,6 +43,7 @@ const art: SceneArt = {
 const at = (percent: number, transition: Transition = 'none', fromPercent = percent): PileView => ({
   level: levelFor(percent),
   fill: fillFor(percent),
+  percent: Math.round(percent),
   from: levelFor(fromPercent),
   fromFill: fillFor(fromPercent),
   transition,
@@ -304,6 +311,52 @@ describe('the ground and the distance', () => {
   test('leaves drift down from the tree while it has some, and not once it is bare', () => {
     expect(renderScene(art, at(30))).toContain('class="drift dl0"')
     expect(renderScene(art, at(95))).not.toContain('class="drift dl')
+  })
+})
+
+describe('the sign', () => {
+  test('shows the exact context percent', () => {
+    expect(renderScene(art, at(42))).toMatch(/<text class="numerals"[^>]*>42%<\/text>/)
+    expect(renderScene(art, at(44))).toMatch(/<text class="numerals"[^>]*>44%<\/text>/)
+  })
+
+  test('shows a dash before there is any reading', () => {
+    expect(renderScene(art, { ...at(0), percent: null })).toMatch(/<text class="numerals"[^>]*>—<\/text>/)
+  })
+
+  test('collects leaves at 30, 60 and 90%, as the far trees lose theirs', () => {
+    const stuck = (percent: number) => count(renderScene(art, at(percent)), /class="stuck"/g)
+
+    expect([25, 30, 55, 60, 85, 90, 100].map(stuck)).toEqual([0, 2, 2, 4, 4, 6, 6])
+  })
+
+  test('turns to the warning ink from 75%', () => {
+    expect(renderScene(art, at(70))).not.toContain('class="sign warn"')
+    expect(renderScene(art, at(75))).toContain('class="sign warn"')
+  })
+
+  test('draws at full strength, outside the faded art', () => {
+    const svg = renderScene(art, at(42))
+    const sign = svg.indexOf('<g class="sign')
+    const lastArt = svg.lastIndexOf('<g class="art">', sign)
+
+    expect(sign).toBeGreaterThan(-1)
+    expect(svg.slice(lastArt, sign)).toContain('</g></g>')
+    expect(svg.slice(lastArt, sign).split('<g').length - 1).toBe(svg.slice(lastArt, sign).split('</g>').length - 1)
+  })
+
+  test("wears the season's ornament", () => {
+    expect(renderScene(art, at(42))).toContain('<circle class="acorn" r="3"/>')
+  })
+})
+
+describe('altFor', () => {
+  test('tells a reader the percent with the scene', () => {
+    expect(altFor(art, at(42))).toBe('level 1 42% of the context window is used.')
+  })
+
+  test('with no reading, just the scene', () => {
+    expect(altFor(art, { ...at(0), percent: null })).toBe('level 0')
   })
 })
 

@@ -21,7 +21,7 @@ for (const season of SEASONS) {
     test('every level and move draws a scene the engine accepts', () => {
       for (const fill of FILLS) {
         for (const [transition, fromFill] of MOVES) {
-          const view = { level: levelAt(fill), fill, from: levelAt(fromFill), fromFill, transition, seed: 12345 }
+          const view = { level: levelAt(fill), fill, percent: fill, from: levelAt(fromFill), fromFill, transition, seed: 12345 }
 
           expect(sceneProblems(renderScene(season.art, view))).toEqual([])
         }

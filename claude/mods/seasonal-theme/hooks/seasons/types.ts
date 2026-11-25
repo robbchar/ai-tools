@@ -49,6 +49,9 @@ export type SceneArt = {
     // (bare). Each crown goes in a group classed `crown`, which regrows after a compact.
     trees: (fullness: number, variant: number) => string
   }
+  // The sign beside the pile that shows the context percent. The ornament sits on the
+  // board's top-left corner, drawn about 0,0.
+  sign: { wood: ModeColor; ink: ModeColor; warmInk: ModeColor; ornament: string }
   // Faces left with feet on y=0, about 90 units tall. Groups classed `head`,
   // `leg-a` and `leg-b` are animated, so they carry no transform attribute.
   wanderer: {

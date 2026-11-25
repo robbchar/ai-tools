@@ -6,7 +6,8 @@ Claude Code mod: a seasonal look for the desktop app, with two signals on top of
 | --- | --- | --- |
 | Palette and backdrop | the season, picked by date | the app's colors and the scene behind the chat |
 | Leaves: the big tree's crown and the pile in the bottom-right corner | how much of the context window is left (the tree) and used (the pile) | the backdrop |
-| `WSL` / `WIN` badge | where Claude Code is running | the status line under the prompt |
+| Sign beside the pile | the exact context percent | the backdrop |
+| `WSL` / `WIN` badge, then the percent | where Claude Code is running, and the exact percent even when the corner is covered | the status line under the prompt |
 
 Only fall exists so far: a cream and hearth-brown palette, leaves that drift down now and then, and a cartoon turkey that wanders in to peck about. The leaves are the context. A big tree on the left starts in full leaf and goes bare as the window fills, and with each step a gust carries its leaves across to the pile on the right. Far trees along the horizon drop their leaves too, in three bigger steps at 30%, 60% and 90%, and leaves gather on the ground. Pumpkins sit at the big tree's foot, and a scarecrow stands on a hill in the distance.
 
@@ -22,15 +23,17 @@ Both move in steps of 5% of the context window. The pile keeps the same width an
 | 75–90% | nearly bare | turns redder and wobbles more, as a gentle warning |
 | 90% and up | bare, but for one last leaf | the turkey launches itself to the top and dives in, and only its tail feathers stick out: time to wrap up or compact |
 
-Each step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top. Everything updates after each turn, since that's when Claude Code measures the context window.
+A wooden sign on a post beside the tower shows the exact percent, updated every turn. It collects a couple of stuck leaves at 30%, 60% and 90%, and its numerals turn red from 75%. The status line under the prompt shows the same number after the badge, as `WSL · 42% context`.
 
-`/leaves 80` previews the pile at 80% without touching the live reading. `/leaves off` goes back to live, and `/leaves` on its own says where things stand.
+Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top. Everything updates after each turn, since that's when Claude Code measures the context window.
+
+`/leaves 80` previews the scene at 80% without touching the live reading; the status line marks it `(preview)`. `/leaves off` goes back to live, and `/leaves` on its own says where things stand.
 
 ## Where it draws
 
 - **Desktop app:** everything.
 - **Mobile app:** the backdrop, possibly still.
-- **Terminal and editors:** no theme or backdrop, since they don't draw themes. The status line badge still shows.
+- **Terminal and editors:** no theme or backdrop, since they don't draw themes. The status line, with its badge and percent, still shows.
 
 With reduced motion turned on, the app takes the scene's animation out. The tree still shows its leaves and the pile its size, the tail still shows at 90% and up, and there are no gusts, swirls or wandering turkey.
 
@@ -63,6 +66,7 @@ The mod's **Season** setting is `auto` by default, which picks by date: December
    - `wanderer.peek`: what sticks out of the top of the pile at 90% and up.
    - `scenery.tree`: the big tree's branches, the clumps of leaves it loses as context fills, their colors, and where the last leaf clings.
    - `scenery.markup`: still art for the bottom-left corner. Groups classed `far` draw faint, as if in the distance.
+   - `sign`: the board's wood, the numerals' ink and their warning ink in each mode, and an ornament for the board's corner.
    - `distance`: the field's color, and a cluster of far trees drawn at a fullness of 1, 0.66, 0.33 or 0 (bare), with each crown in a group classed `crown` so it can regrow.
 2. Add it to `SEASONS` in `hooks/seasons/index.ts`.
 3. Add its id to the `season` options in `.claude-plugin/plugin.json`.

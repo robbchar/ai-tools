@@ -189,6 +189,14 @@ const farTrees = (fullness: number, variant: number) =>
     })
     .join('')
 
+// A little acorn for the sign's corner.
+const acorn =
+  '<g transform="rotate(-20)">' +
+  '<ellipse cx="0" cy="3" rx="5" ry="6.5" fill="#a8743c"/>' +
+  '<path d="M-6.5 0a6.5 3.5 0 0 1 13 0Z" fill="#6b4a2a"/>' +
+  '<path d="M0 -3v-3" stroke="#6b4a2a" stroke-width="1.6" stroke-linecap="round"/>' +
+  '</g>'
+
 const DESCRIPTIONS: Record<Level, string> = {
   0: 'A quiet fall scene: a big tree in full leaf, pumpkins, a scarecrow and far trees, and now and then a turkey wanders by.',
   1: 'Leaves blowing off a big tree into a small pile in the corner.',
@@ -222,6 +230,12 @@ export const fall: Season = {
       },
     },
     distance: { field: { light: '#e8d6b6', dark: '#2a1e15' }, trees: farTrees },
+    sign: {
+      wood: { light: '#e3c28e', dark: '#4a3420' },
+      ink: { light: '#3a2414', dark: '#f2dcb3' },
+      warmInk: { light: '#9e2b1f', dark: '#f08a6a' },
+      ornament: acorn,
+    },
     wanderer: {
       body: turkey,
       peek: fan(0, 0, 48, [-50, -25, 0, 25, 50], FEATHERS),

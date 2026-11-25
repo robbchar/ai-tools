@@ -50,10 +50,16 @@ const engine = (
 const start = ($: Engine) =>
   $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 
-const drawnScene = async ($: Engine, plugin: string = PLUGIN) => {
+const drawn = async ($: Engine, plugin: string = PLUGIN) => {
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'desktop', component: 'Backdrop', props: { ...BACKDROP, plugin } })
   const svg = await ui.find({ type: 'Svg' })
   await ui.unmount()
+
+  return svg
+}
+
+const drawnScene = async ($: Engine, plugin: string = PLUGIN) => {
+  const svg = await drawn($, plugin)
 
   return svg === undefined ? undefined : String(svg.props.source)
 }
@@ -89,6 +95,33 @@ describe('seasonal-theme', () => {
     expect(statuses).toEqual(['WIN'])
   })
 
+  test('the status line adds the context percent once there is a reading', async ($, on) => {
+    const { statuses } = engine(on, { platform: 'wsl' })
+    await start($)
+    await $.session.measure(reading(41.6))
+
+    expect(statuses.at(-1)).toBe('WSL · 42% context')
+  })
+
+  test('a /leaves preview shows in the status line as a preview', async ($, on) => {
+    const { statuses } = engine(on, { platform: 'windows' })
+    await start($)
+    await $.session.measure(reading(30))
+    await $.command.run(leaves('95'))
+
+    expect(statuses.at(-1)).toBe('WIN · 95% context (preview)')
+  })
+
+  test('the sign and the description carry the exact percent', async ($, on) => {
+    engine(on)
+    await start($)
+    await $.session.measure(reading(43))
+
+    const svg = await drawn($)
+    expect(String(svg?.props.source)).toMatch(/>43%<\/text>/)
+    expect(String(svg?.props.alt)).toContain('43% of the context window is used.')
+  })
+
   test('with no reading yet the backdrop is the plain fall scene', async ($, on) => {
     engine(on)
     await start($)
@@ -118,14 +151,16 @@ describe('seasonal-theme', () => {
 
   test('a pile an older version stored is replaced, not misread', async ($, on) => {
     engine(on)
-    // What the code before the 5% steps stored: no fill, under the old tag.
+    // What the code before the sign stored: no percent, under the old tag.
     on('state.get', (_, e, next) =>
       e.key === 'pile'
-        ? { value: { value: { shape: 'pile-1', value: { level: 3, from: 3, transition: 'none', seed: 1 } }, version: 1 } }
+        ? { value: { value: { shape: 'pile-2', value: { level: 3, fill: 80, from: 3, fromFill: 80, transition: 'none', seed: 1 } }, version: 1 } }
         : next(e),
     )
 
-    expect(await drawnScene($)).toContain('data-fill="0"')
+    const svg = await drawnScene($)
+    expect(svg).toContain('data-fill="0"')
+    expect(svg).not.toContain('undefined')
   })
 
   test('crossing 90% dives, and a compact scatters the pile', async ($, on) => {

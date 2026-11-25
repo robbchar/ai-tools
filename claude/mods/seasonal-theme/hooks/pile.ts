@@ -36,17 +36,22 @@ export const settle = (view: PileView, before: Reading, after: Reading, seed: nu
   const percent = effectivePercent(after)
   const level = levelFor(percent)
   const fill = fillFor(percent)
+  const shown = percent === null ? null : Math.round(percent)
 
-  if (level === view.level && fill === view.fill) {
+  if (level === view.level && fill === view.fill && shown === view.percent) {
     return null
   }
+
+  // A new percent within the same step only changes the sign's number.
+  const isStill = level === view.level && fill === view.fill
 
   return {
     level,
     fill,
+    percent: shown,
     from: view.level,
     fromFill: view.fill,
-    transition: transitionTo(view, level, fill, effectivePercent(before), percent),
+    transition: isStill ? 'none' : transitionTo(view, level, fill, effectivePercent(before), percent),
     seed,
   }
 }
