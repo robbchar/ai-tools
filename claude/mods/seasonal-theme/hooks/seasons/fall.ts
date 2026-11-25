@@ -1,6 +1,6 @@
 import type { Level } from '../../types'
 
-import type { Palette, PieceArt, Season } from './types'
+import type { Clump, Palette, PieceArt, Season } from './types'
 
 // Harvest: cream paper by day, hearth-lit brown by night.
 const palette: Palette = {
@@ -86,29 +86,33 @@ const GROUND = 985
 const BARK = '#5e3a1f'
 const VINE = '#5b6a2b'
 
-// A small tree with a few leaves left on its twigs, on the left stage.
+// The big tree on the left stage: trunk and boughs; its leaves are clumps the scene thins out.
 const BOUGHS: readonly [string, number][] = [
-  ['M150 790C128 752 102 730 74 712', 10],
-  ['M156 778C178 742 208 722 242 708', 10],
-  ['M153 765C150 728 156 692 150 650', 9],
-  ['M100 728C94 712 96 698 88 684', 5],
-  ['M210 720C220 704 232 694 248 688', 5],
-  ['M152 700C170 686 184 672 198 662', 5],
-  ['M151 672C138 660 128 646 122 630', 4],
-  ['M74 712C62 706 54 698 48 690', 4],
+  ['M188 600C160 540 110 505 50 475', 20],
+  ['M200 590C240 535 300 505 370 485', 20],
+  ['M193 575C188 490 198 410 188 310', 18],
+  ['M120 515C100 470 90 430 70 392', 10],
+  ['M300 507C322 462 340 424 360 384', 10],
+  ['M190 430C152 388 122 348 102 306', 9],
+  ['M192 410C232 368 262 338 292 306', 9],
+  ['M50 475C28 460 6 450 -16 446', 8],
+  ['M370 485C396 474 418 468 444 470', 8],
+  ['M188 330C174 302 168 282 162 260', 7],
+  ['M70 392C58 372 54 354 50 336', 6],
+  ['M360 384C372 364 378 346 380 326', 6],
 ]
-const TREE_LEAVES: readonly [number, number][] = [
-  [88, 684], [198, 662], [122, 630], [248, 688], [48, 690], [150, 650],
-  [242, 708], [74, 712], [106, 700], [176, 684], [136, 646], [222, 702],
-]
-const LEAF_COLORS = ['#c8641e', '#d39b2a', '#b4481e', '#9e2f22', '#dfae45']
 
-const tree =
-  `<path d="M128 985C134 930 138 860 142 800C144 780 146 770 147 760L159 760C161 772 163 784 165 800C169 860 174 930 182 985Z" fill="${BARK}"/>` +
-  BOUGHS.map(([d, width]) => `<path d="${d}" stroke="${BARK}" stroke-width="${width}" stroke-linecap="round" fill="none"/>`).join('') +
-  TREE_LEAVES.map(([x, y], i) =>
-    `<g transform="translate(${x} ${y}) rotate(${(i * 67) % 360}) scale(1.4)">${leaf(LEAF_COLORS[i % LEAF_COLORS.length] ?? '', i)}</g>`,
-  ).join('')
+const branches =
+  `<path d="M140 985C152 900 162 800 170 700C174 640 176 600 178 560L208 560C208 600 210 640 214 700C222 800 234 900 250 985Z" fill="${BARK}"/>` +
+  BOUGHS.map(([d, width]) => `<path d="${d}" stroke="${BARK}" stroke-width="${width}" stroke-linecap="round" fill="none"/>`).join('')
+
+const CLUMPS: readonly Clump[] = [
+  { x: 190, y: 340, r: 95 }, { x: 110, y: 390, r: 88 }, { x: 285, y: 380, r: 90 }, { x: 190, y: 450, r: 92 },
+  { x: 45, y: 455, r: 78 }, { x: 365, y: 455, r: 80 }, { x: 120, y: 505, r: 72 }, { x: 270, y: 505, r: 74 },
+  { x: 150, y: 270, r: 72 }, { x: 245, y: 272, r: 70 }, { x: 60, y: 330, r: 66 }, { x: 335, y: 305, r: 66 },
+  { x: -12, y: 405, r: 60 }, { x: 425, y: 410, r: 62 }, { x: 200, y: 545, r: 62 }, { x: 25, y: 525, r: 56 },
+  { x: 410, y: 525, r: 56 }, { x: 195, y: 225, r: 58 },
+]
 
 // A ribbed pumpkin sitting on the ground, about `size` units wide.
 const pumpkin = (cx: number, size: number) => {
@@ -125,10 +129,10 @@ const pumpkin = (cx: number, size: number) => {
 }
 
 const pumpkins =
-  `<path d="M228 983C250 975 270 990 300 980S340 975 378 984" stroke="${VINE}" stroke-width="2.5" stroke-opacity=".8" fill="none"/>` +
-  pumpkin(262, 64) +
-  pumpkin(322, 44) +
-  pumpkin(360, 30)
+  `<path d="M266 983C288 975 308 990 338 980S378 975 416 984" stroke="${VINE}" stroke-width="2.5" stroke-opacity=".8" fill="none"/>` +
+  pumpkin(300, 64) +
+  pumpkin(360, 44) +
+  pumpkin(398, 30)
 
 // A small, faint scarecrow on a low hill in the distance; feet on y=0 before it is placed.
 const STRAW = 'stroke="#d8b65a" stroke-width="3" stroke-linecap="round"'
@@ -147,18 +151,37 @@ const scarecrow =
   '<path d="M-13 -143L-10 -160H10L13 -143Z" fill="#6b4a2a"/>' +
   '<rect x="-12" y="-148" width="24" height="3" fill="#a4583a"/>'
 
-const distance =
+const hill =
   '<g class="far">' +
-  '<path d="M330 985C380 950 470 935 560 942C620 948 660 965 700 985Z" fill="#b98a55" fill-opacity=".35"/>' +
-  `<g transform="translate(480 944) scale(.55)">${scarecrow}</g>` +
+  '<path d="M440 985C500 950 590 935 680 942C740 948 780 965 820 985Z" fill="#b98a55" fill-opacity=".35"/>' +
+  `<g transform="translate(610 944) scale(.55)">${scarecrow}</g>` +
   '</g>'
 
+// A cluster of far trees in a 120 by 100 box; thinner crowns as the season wears on.
+const FAR_CROWNS = ['#c98a4e', '#b96b3c', '#d2a457', '#a85a34']
+const farTrees = (fullness: number, variant: number) =>
+  [0, 1, 2, 3]
+    .slice(0, 2 + (variant % 3))
+    .map(k => {
+      const x = 12 + k * 32 + ((variant * 17 + k * 11) % 18)
+      const height = 34 + ((variant * 13 + k * 29) % 50)
+      const crown = 0.4 + 0.6 * fullness
+      const lean = ((variant + k) % 3) - 1
+
+      return (
+        `<path d="M${x - 2} 100L${x + lean} ${(100 - height * 0.55).toFixed(1)}L${x + 2} 100Z" fill="#7a5a40"/>` +
+        `<ellipse cx="${x + lean}" cy="${(100 - height * 0.6).toFixed(1)}" rx="${(height * 0.26 * crown).toFixed(1)}" ry="${(height * 0.36 * crown).toFixed(1)}" fill="${FAR_CROWNS[(variant + k) % FAR_CROWNS.length] ?? ''}"/>` +
+        `<ellipse cx="${x + lean + height * 0.1}" cy="${(100 - height * 0.72).toFixed(1)}" rx="${(height * 0.16 * crown).toFixed(1)}" ry="${(height * 0.2 * crown).toFixed(1)}" fill="${FAR_CROWNS[(variant + k + 2) % FAR_CROWNS.length] ?? ''}"/>`
+      )
+    })
+    .join('')
+
 const DESCRIPTIONS: Record<Level, string> = {
-  0: 'A quiet fall scene: a tree, pumpkins, a scarecrow far off, and now and then a turkey wanders by.',
-  1: 'A small leaf pile in the corner, across from a tree and pumpkins.',
-  2: 'A leaf pile in the corner, growing into a wobbly tower.',
-  3: 'A tall, teetering tower of leaves, turning red: the context window is getting full.',
-  4: 'A turkey has dived into the top of a towering leaf pile, only its tail feathers showing: time to wrap up or compact.',
+  0: 'A quiet fall scene: a big tree in full leaf, pumpkins, a scarecrow and far trees, and now and then a turkey wanders by.',
+  1: 'Leaves blowing off a big tree into a small pile in the corner.',
+  2: 'A thinning tree, and its leaves heaped into a wobbly tower in the corner.',
+  3: 'A nearly bare tree and a tall, teetering tower of leaves, turning red: the context window is getting full.',
+  4: 'A bare tree holding one last leaf, and a turkey dived into the top of a towering leaf pile: time to wrap up or compact.',
 }
 
 export const fall: Season = {
@@ -177,9 +200,15 @@ export const fall: Season = {
     },
     drifter: { piece: leaf, colors: ['#c8641e', '#d39b2a', '#b4481e', '#9e2f22'] },
     scenery: {
-      markup: distance + tree + pumpkins,
-      dropFrom: TREE_LEAVES.slice(0, 4).map(([x, y]) => ({ x, y })),
+      markup: hill + pumpkins,
+      tree: {
+        branches,
+        clumps: CLUMPS,
+        colors: ['#9e3f22', '#b8521e', '#c8641e', '#d6862a', '#dfae45', '#b4481e'],
+        lastLeaf: { x: 444, y: 472 },
+      },
     },
+    distance: { field: { light: '#e8d6b6', dark: '#2a1e15' }, trees: farTrees },
     wanderer: {
       body: turkey,
       peek: fan(0, 0, 48, [-50, -25, 0, 25, 50], FEATHERS),

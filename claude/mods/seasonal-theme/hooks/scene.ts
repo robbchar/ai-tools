@@ -1,11 +1,12 @@
 import type { Level, PileView } from '../types'
 
-import type { ModeColor, PieceArt, SceneArt } from './seasons/types'
+import type { Clump, ModeColor, PieceArt, SceneArt } from './seasons/types'
 
 export const MAX_SCENE_CHARS = 131_072
 
 // Two 1000-unit stages pinned to the window's bottom corners, scaled to its shorter side:
-// the tower on the right, the season's scenery on the left.
+// the tower on the right, the season's tree and scenery on the left. A stage unit is
+// 0.1vmin, which is how leaves that fly between the two stages are placed.
 const GROUND_Y = 985
 const PILE_X = 850
 const HALF_WIDTH = 112
@@ -16,11 +17,13 @@ const VISIT_SECONDS = 120
 const PIECE_SCALE = 1.65
 const TEETER_FROM = 50
 const EDGE_GAP = 22
-const BURST_BANDS = 6
+const GUST_LEAVES = 9
+const SWIRL_LEAVES = 22
+const FAR_CLUSTERS = [17, 31, 44, 58, 71, 85]
 
 const isWarm = (level: Level) => level >= 3
 
-// Same input, same output: the tower looks the same on every redraw.
+// Same input, same output: the scene looks the same on every redraw.
 const noise = (n: number): number => {
   const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453
 
@@ -40,6 +43,30 @@ type Parts = { css: string[]; dark: string[] }
 type Point = { x: number; y: number }
 type Spot = Point & { turn: number; i: number }
 type Tower = { height: number; cap: number }
+type Side = 'left' | 'right'
+
+const placed = (spot: Spot, inner: string, scale = PIECE_SCALE) =>
+  `<g transform="translate(${r(spot.x)} ${r(spot.y)}) rotate(${r(spot.turn)}) scale(${scale})">${inner}</g>`
+
+// Smooth closed or open paths through points, with quadratic curves between midpoints.
+const pathOf = (points: readonly Point[]): string => {
+  const [first] = points
+  const last = points.at(-1)
+
+  if (first === undefined || last === undefined) {
+    return ''
+  }
+
+  const curves = points.slice(1, -1).map((point, k) => {
+    const next = points[k + 2] ?? point
+
+    return `Q${r(point.x)} ${r(point.y)} ${r((point.x + next.x) / 2)} ${r((point.y + next.y) / 2)}`
+  })
+
+  return `M${r(first.x)} ${r(first.y)}${curves.join('')}L${r(last.x)} ${r(last.y)}Z`
+}
+
+// -- The tower --------------------------------------------------------------------------
 
 // Height follows the fill; the width never changes, so a full window gets a silly, tall tower.
 const towerOf = (fill: number): Tower => {
@@ -76,23 +103,6 @@ const outlineOf = (tower: Tower): Point[] => {
   const right = heights.map((y, k) => ({ x: PILE_X + halfWidthAt(tower, y) * lump(k, 13), y: GROUND_Y - y }))
 
   return [...left, ...right.reverse().slice(1)]
-}
-
-const pathOf = (points: readonly Point[]): string => {
-  const [first] = points
-  const last = points.at(-1)
-
-  if (first === undefined || last === undefined) {
-    return ''
-  }
-
-  const curves = points.slice(1, -1).map((point, k) => {
-    const next = points[k + 2] ?? point
-
-    return `Q${r(point.x)} ${r(point.y)} ${r((point.x + next.x) / 2)} ${r((point.y + next.y) / 2)}`
-  })
-
-  return `M${r(first.x)} ${r(first.y)}${curves.join('')}L${r(last.x)} ${r(last.y)}Z`
 }
 
 // Leaves along the outline, so the silhouette reads as leaves, a few units inside it.
@@ -133,9 +143,6 @@ const faceSpots = (tower: Tower): Spot[] => {
   })
 }
 
-const placed = (spot: Spot, inner: string) =>
-  `<g transform="translate(${r(spot.x)} ${r(spot.y)}) rotate(${r(spot.turn)}) scale(${PIECE_SCALE})">${inner}</g>`
-
 const towerColors = (art: SceneArt, level: Level) => (isWarm(level) ? art.pile.warmColors : art.pile.colors)
 
 const ratio = (from: number, to: number) => Math.round((from / to) * 100) / 100
@@ -175,6 +182,21 @@ const towerMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
   return teeter === '' ? heap : `<g class="${teeter}">${heap}</g>`
 }
 
+// After a compact: the old tower's outline sinks and fades where it stood.
+const collapseMarkup = (art: SceneArt, view: PileView): string => {
+  const tower = towerOf(view.fromFill)
+
+  if (tower.height === 0) {
+    return ''
+  }
+
+  const colors = towerColors(art, view.from)
+  const outline = outlineOf(tower)
+  const bits = edgeSpots(outline, 0).map(spot => placed(spot, `<g class="bit">${art.pile.piece(pick(colors, spot.i) ?? '', spot.i)}</g>`))
+
+  return `<g class="collapse"><path class="mound" d="${pathOf(outline)}"/>${bits.join('')}</g>`
+}
+
 const litterMarkup = (art: SceneArt, view: PileView): string => {
   const reach = view.fill === 0 ? 0 : HALF_WIDTH
   const colors = towerColors(art, view.level)
@@ -192,38 +214,183 @@ const litterMarkup = (art: SceneArt, view: PileView): string => {
   }).join('')
 }
 
-// The old tower bursts apart band by band, top first, and the bits fall away.
-const burstMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
-  const tower = towerOf(view.fromFill)
+// -- The big tree -----------------------------------------------------------------------
 
-  if (tower.height === 0) {
-    return ''
+// How full the tree is: 1 with no context used, 0 at 100%.
+const fullnessOf = (fill: number) => 1 - fill / 100
+
+// Each clump holds on until the tree's fullness drops to its own mark; all are gone by 90%.
+const marksOf = (count: number): number[] => {
+  const order = Array.from({ length: count }, (_, i) => i).sort((a, b) => noise(a * 11 + 5) - noise(b * 11 + 5))
+  const marks = Array.from({ length: count }, () => 0)
+  order.forEach((i, rank) => {
+    marks[i] = 0.1 + 0.85 * (count === 1 ? 0 : rank / (count - 1))
+  })
+
+  return marks
+}
+
+const blobPath = (clump: Clump, radius: number, salt: number): string => {
+  const points = Array.from({ length: 9 }, (_, k) => {
+    const angle = (k / 9) * Math.PI * 2
+    const reach = radius * (0.86 + noise(salt * 13 + k) * 0.26)
+
+    return { x: clump.x + Math.cos(angle) * reach, y: clump.y + Math.sin(angle) * reach }
+  })
+  const mid = (a: Point, b: Point) => `${r((a.x + b.x) / 2)} ${r((a.y + b.y) / 2)}`
+  const curves = points.map((point, k) => `Q${r(point.x)} ${r(point.y)} ${mid(point, points[(k + 1) % points.length] ?? point)}`)
+
+  return `M${mid(points.at(-1) ?? clump, points[0] ?? clump)}${curves.join('')}Z`
+}
+
+const clumpMarkup = (art: SceneArt, clump: Clump, i: number, radius: number, extra: string, delay: number): string => {
+  const colors = art.scenery.tree.colors
+  const count = Math.max(4, Math.round((2 * Math.PI * radius) / 58))
+  const leaves = Array.from({ length: count }, (_, j) => {
+    const angle = (j / count) * Math.PI * 2 + noise(i * 17 + j)
+    const spot: Spot = {
+      x: clump.x + Math.cos(angle) * radius * 0.92,
+      y: clump.y + Math.sin(angle) * radius * 0.92,
+      turn: noise(i * 17 + j + 3) * 360,
+      i: j,
+    }
+
+    return placed(spot, art.pile.piece(pick(colors, i + j + 1) ?? '', j), 1.5)
+  })
+  const style = delay > 0 ? ` style="animation-delay:${r(delay)}s"` : ''
+
+  return `<g class="clump${extra}"${style}><path d="${blobPath(clump, radius, i)}" fill="${pick(colors, i) ?? ''}"/>${leaves.join('')}</g>`
+}
+
+type CrownState = { visible: Clump[]; leaving: Clump[] }
+
+const crownOf = (art: SceneArt, fill: number, fromFill: number): CrownState & { marks: number[] } => {
+  const clumps = art.scenery.tree.clumps
+  const marks = marksOf(clumps.length)
+  const now = fullnessOf(fill)
+  const before = fullnessOf(fromFill)
+
+  return {
+    marks,
+    visible: clumps.filter((_, i) => now > (marks[i] ?? 1)),
+    leaving: clumps.filter((_, i) => before > (marks[i] ?? 1) && now <= (marks[i] ?? 1)),
   }
+}
 
-  const colors = towerColors(art, view.from)
-  const face = faceSpots(tower)
-  const spots = [...face, ...edgeSpots(outlineOf(tower), face.length)]
-  const bandOf = (spot: Spot) =>
-    Math.max(0, Math.min(BURST_BANDS - 1, Math.floor(((GROUND_Y - spot.y) / tower.height) * BURST_BANDS)))
+const treeMarkup = (art: SceneArt, view: PileView): string => {
+  const tree = art.scenery.tree
+  const now = fullnessOf(view.fill)
+  const before = fullnessOf(view.fromFill)
+  const marks = marksOf(tree.clumps.length)
+  const isGust = view.transition === 'grow' || view.transition === 'dive'
+  const isRefill = view.transition === 'scatter' || view.transition === 'shrink'
+  let arrivals = 0
+  const clumps = tree.clumps.map((clump, i) => {
+    const mark = marks[i] ?? 1
+    const isVisible = now > mark
+    const wasVisible = before > mark
 
-  return Array.from({ length: BURST_BANDS }, (_, band) => {
-    const dx = r((band % 2 === 0 ? -1 : 1) * (90 + noise(band + 40) * 180))
-    const rise = r(-(30 + noise(band + 41) * 80))
-    const fall = r(((band + 0.5) / BURST_BANDS) * tower.height)
-    const spin = r((noise(band + 42) - 0.5) * 120)
-    const delay = r((BURST_BANDS - 1 - band) * 0.08)
-    parts.css.push(
-      `@keyframes b${band}{from{transform:none;opacity:1}35%{transform:translate(${r(dx / 2)}px,${rise}px) rotate(${r(spin / 2)}deg);opacity:1}` +
-        `to{transform:translate(${dx}px,${fall}px) rotate(${spin}deg);opacity:0}}`,
-      `.b${band}{transform-box:fill-box;transform-origin:50% 50%;animation:b${band} 1.9s cubic-bezier(.3,.5,.5,1) ${delay}s both}`,
-    )
-    const bits = spots
-      .filter(spot => bandOf(spot) === band)
-      .map(spot => placed(spot, `<g class="bit">${art.pile.piece(pick(colors, spot.i) ?? '', spot.i)}</g>`))
+    if (isVisible) {
+      const radius = clump.r * (0.62 + 0.38 * Math.min(1, (now - mark) / 0.2))
+      const isArriving = isRefill && !wasVisible
+      const delay = isArriving ? (view.transition === 'scatter' ? 1.8 : 0.1) + arrivals++ * 0.12 : 0
 
-    return `<g class="burst b${band}">${bits.join('')}</g>`
+      return clumpMarkup(art, clump, i, radius, isArriving ? ' arrive' : '', delay)
+    }
+
+    return isGust && wasVisible ? clumpMarkup(art, clump, i, clump.r * 0.7, ' leave', 0.2 + noise(i + 7) * 0.6) : ''
+  })
+  const last =
+    view.level === 4
+      ? `<g transform="translate(${tree.lastLeaf.x} ${tree.lastLeaf.y}) scale(1.6)"><g class="cling">${art.pile.piece(pick(tree.colors, 2) ?? '', 0)}</g></g>`
+      : ''
+
+  return `<g class="tree${isGust ? ' gusting' : ''}">${tree.branches}${clumps.join('')}${last}</g>`
+}
+
+// -- Leaves that fly between the stages -------------------------------------------------
+
+type StagePoint = Point & { side: Side }
+
+// A point between two stage points, as CSS lengths for the unscaled root layer.
+const between = (a: StagePoint, b: StagePoint, t: number, lift: number, sway: number): string => {
+  const width = (side: Side) => (side === 'left' ? 0 : 100)
+  const across = (p: StagePoint) => (p.side === 'left' ? p.x / 10 : -(1000 - p.x) / 10)
+  const vw = width(a.side) * (1 - t) + width(b.side) * t
+  const vmin = across(a) * (1 - t) + across(b) * t + sway
+  const x = vw === 0 ? `${r(vmin)}vmin` : vmin <= 0 ? `calc(${r(vw)}vw - ${r(-vmin)}vmin)` : `calc(${r(vw)}vw + ${r(vmin)}vmin)`
+  const up = ((1000 - a.y) / 10) * (1 - t) + ((1000 - b.y) / 10) * t + lift
+
+  return `${x},calc(100vh - ${r(up)}vmin)`
+}
+
+type Flight = { name: string; from: StagePoint; to: StagePoint; stops: readonly [number, number, number, number][]; seconds: number; delay: number }
+
+// Each stop is [percent, t along the way, lift in vmin, sideways sway in vmin].
+const flightMarkup = (art: SceneArt, flight: Flight, i: number, parts: Parts): string => {
+  const spin = 300 + noise(i + 61) * 500
+  const frames = flight.stops.map(([at, t, lift, sway]) => {
+    const fade = at === 0 || at === 100 ? 0 : 0.95
+
+    return `${at}%{transform:translate(${between(flight.from, flight.to, t, lift, sway)}) rotate(${r(spin * t)}deg);opacity:${fade}}`
+  })
+  parts.css.push(
+    `@keyframes ${flight.name}{${frames.join('')}}`,
+    `.${flight.name}{animation:${flight.name} ${r(flight.seconds)}s ease-in-out ${r(flight.delay)}s both}`,
+  )
+
+  return `<g class="${flight.name.startsWith('g') ? 'gust' : 'swirl'} ${flight.name}"><g transform="scale(1.5)">${art.pile.piece(pick(art.drifter.colors, i) ?? '', i)}</g></g>`
+}
+
+// Each step up: a gust lifts leaves off the tree and carries them across to the pile.
+const gustMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+  const crown = crownOf(art, view.fill, view.fromFill)
+  const sources = crown.leaving.length > 0 ? crown.leaving : crown.visible.length > 0 ? crown.visible : art.scenery.tree.clumps
+  const topOfPile = GROUND_Y - towerOf(view.fill).height + 20
+
+  return Array.from({ length: GUST_LEAVES }, (_, i) => {
+    const source = pick(sources, i) ?? { x: 200, y: 500, r: 40 }
+    const from: StagePoint = { side: 'left', x: source.x + (noise(i + 31) - 0.5) * source.r, y: source.y + (noise(i + 32) - 0.5) * source.r }
+    const to: StagePoint = { side: 'right', x: PILE_X + (noise(i + 33) - 0.5) * 120, y: topOfPile }
+    const lift = 6 + noise(i + 34) * 8
+
+    return flightMarkup(art, {
+      name: `g${i}`,
+      from,
+      to,
+      stops: [[0, 0, 0, 0], [8, 0.06, 2, 0], [35, 0.3, lift, 2], [60, 0.58, lift * 0.6, -2], [85, 0.86, lift * 0.4, 1], [100, 1, 0, 0]],
+      seconds: 3.6 + noise(i + 35) * 0.9,
+      delay: i * 0.14,
+    }, i, parts)
   }).join('')
 }
+
+// After a compact: leaves swirl up off the old pile and back into the tree.
+const swirlMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+  const old = towerOf(view.fromFill)
+  const spots = old.height === 0 ? [] : edgeSpots(outlineOf(old), 0)
+  const crown = crownOf(art, view.fill, view.fromFill)
+  const targets = crown.visible.length > 0 ? crown.visible : art.scenery.tree.clumps
+
+  return Array.from({ length: SWIRL_LEAVES }, (_, i) => {
+    const spot = pick(spots, i * 7) ?? { x: PILE_X, y: GROUND_Y - 20 }
+    const target = pick(targets, i) ?? { x: 200, y: 500, r: 40 }
+    const from: StagePoint = { side: 'right', x: spot.x, y: spot.y }
+    const to: StagePoint = { side: 'left', x: target.x + (noise(i + 41) - 0.5) * target.r, y: target.y + (noise(i + 42) - 0.5) * target.r }
+    const curl = 4 + noise(i + 43) * 6
+
+    return flightMarkup(art, {
+      name: `s${i}`,
+      from,
+      to,
+      stops: [[0, 0, 0, 0], [6, 0.01, 4, 0], [22, 0.06, 16, curl], [42, 0.22, 26, -curl], [62, 0.5, 22, 0], [82, 0.82, 10, curl / 2], [100, 1, 0, 0]],
+      seconds: 3 + noise(i + 44) * 0.8,
+      delay: 0.2 + i * 0.05,
+    }, i, parts)
+  }).join('')
+}
+
+// -- The wanderer -----------------------------------------------------------------------
 
 // Alternating leg swings over walking stretches of a looping timeline.
 const strideKeyframes = (name: string, walks: readonly [number, number][], step: number, swing: number) => {
@@ -293,7 +460,7 @@ const diveMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
   return `<g transform="translate(0 ${GROUND_Y})"><g class="dive">${art.wanderer.body}</g></g>`
 }
 
-// After a compact or clear: the wanderer pops out of the top and floats down as the tower bursts.
+// After a compact or clear: the wanderer pops out of the top and floats down as the tower goes.
 const popoutMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
   const top = r(towerOf(view.fromFill).height)
   parts.css.push(
@@ -311,6 +478,8 @@ const popoutMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 
   return `<g transform="translate(0 ${GROUND_Y})"><g class="popout"><g class="turn">${art.wanderer.body}</g></g></g>`
 }
+
+// -- Drifting, the ground, the distance -------------------------------------------------
 
 type Lane = { name: string; salt: number; starts: readonly Point[]; landAt: (x: number) => number }
 
@@ -332,44 +501,94 @@ const driftMarkup = (piece: PieceArt, colors: readonly string[], view: PileView,
     return `<g transform="translate(${r(start.x)} ${r(start.y)})"><g class="drift ${name}"><g class="sway">${piece(pick(colors, i) ?? '', i)}</g></g></g>`
   }).join('')
 
+// Leaves on the ground, a few more with every step; each keeps its place as more arrive.
+const groundMarkup = (art: SceneArt, view: PileView, side: Side): string => {
+  const count = 3 + Math.round((9 * view.fill) / 100)
+  const [from, span, salt] = side === 'left' ? [250, 470, 71] : [360, 620, 91]
+
+  return Array.from({ length: count }, (_, i) => {
+    const spot: Spot = {
+      x: from + noise(i * 5 + salt) * span,
+      y: GROUND_Y - 1 - noise(i * 5 + salt + 1) * 6,
+      turn: noise(i * 5 + salt + 2) * 360,
+      i,
+    }
+
+    return placed(spot, `<g class="ground-leaf">${art.pile.piece(pick(art.drifter.colors, i + salt) ?? '', i)}</g>`, 1.4)
+  }).join('')
+}
+
+// A field across the back of the window, and clusters of far trees standing on it.
+const distanceMarkup = (art: SceneArt, view: PileView): string => {
+  const fullness = Math.round((1 - view.fill / 200) * 100) / 100
+  const trees = FAR_CLUSTERS.map(
+    (x, i) =>
+      `<svg x="${x}%" y="${76 + (i % 2)}%" width="10%" height="11%" viewBox="0 0 120 100" preserveAspectRatio="xMidYMax meet" overflow="visible">` +
+      `${art.distance.trees(fullness, i)}</svg>`,
+  )
+
+  return (
+    '<g class="distance">' +
+    '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="none">' +
+    '<path class="field" d="M0 876C180 858 340 872 520 860S820 866 1000 852V1000H0Z"/></svg>' +
+    `${trees.join('')}</g>`
+  )
+}
+
 const baseCss = (art: SceneArt, level: Level): Parts => {
   const ground = modeRule('.ground', 'fill', art.ground)
   const mound = modeRule('.mound', 'fill', isWarm(level) ? art.pile.warmMound : art.pile.mound)
+  const field = modeRule('.field', 'fill', art.distance.field)
 
   return {
     css: [
       ground.light,
       mound.light,
+      field.light,
       '.art{opacity:.8}',
       '.far{opacity:.55}',
-      '.drift{opacity:0}',
-      '.burst{opacity:0}',
+      '.distance{opacity:.38}',
+      '.drift,.gust,.swirl,.leave,.collapse{opacity:0}',
       '.head,.leg-a,.leg-b{transform-box:fill-box}',
       '.head{transform-origin:85% 90%}',
       '.leg-a,.leg-b{transform-origin:50% 0}',
-      '.heap,.teeter{transform-box:fill-box;transform-origin:50% 100%}',
+      '.heap,.teeter,.collapse{transform-box:fill-box;transform-origin:50% 100%}',
       '.grow{animation:grow 2.2s cubic-bezier(.3,.8,.4,1) both}',
       '.shrink{animation:shrink 1.8s ease-in-out both}',
       '.regrow{animation:regrow 1.4s ease-out 1.4s both}',
       '@keyframes regrow{from{transform:scaleY(.2);opacity:0}to{transform:none;opacity:1}}',
+      '.collapse{animation:collapse 1.5s ease-in both}',
+      '@keyframes collapse{from{transform:none;opacity:1}to{transform:scale(.8,.1);opacity:0}}',
       '.teeter{animation:teeter 7s ease-in-out infinite alternate}',
       '.wobbly{animation-name:teeter2;animation-duration:5s}',
       '@keyframes teeter{from{transform:rotate(-.7deg)}to{transform:rotate(.7deg)}}',
       '@keyframes teeter2{from{transform:rotate(-1.4deg)}to{transform:rotate(1.4deg)}}',
+      '.tree{transform-box:fill-box;transform-origin:40% 100%}',
+      '.gusting{animation:gusty 3.4s ease-in-out both}',
+      '@keyframes gusty{0%{transform:none}30%{transform:rotate(1.6deg)}60%{transform:rotate(-.5deg)}100%{transform:none}}',
+      '.clump{transform-box:fill-box;transform-origin:50% 50%}',
+      '.leave{animation:leave 1.6s ease-in both}',
+      '@keyframes leave{from{transform:none;opacity:1}to{transform:translate(40px,20px) scale(.4);opacity:0}}',
+      '.arrive{animation:arrive 1.1s cubic-bezier(.3,1.4,.5,1) both}',
+      '@keyframes arrive{from{transform:scale(0);opacity:0}to{transform:none;opacity:1}}',
+      '.cling{transform-box:fill-box;transform-origin:50% 0;animation:cling 3s ease-in-out infinite alternate}',
+      '@keyframes cling{from{transform:rotate(-14deg)}to{transform:rotate(10deg)}}',
       '.sway{animation:sway 5s ease-in-out infinite alternate}',
       '@keyframes sway{from{transform:translateX(-18px)}to{transform:translateX(18px)}}',
       '@keyframes stride{from{transform:rotate(-20deg)}to{transform:rotate(20deg)}}',
       '.wiggle{transform-box:fill-box;transform-origin:50% 100%;animation:wiggle 9s ease-in-out infinite}',
       '@keyframes wiggle{0%,88%{transform:none}92%{transform:rotate(-6deg)}96%{transform:rotate(5deg)}100%{transform:none}}',
     ],
-    dark: [ground.dark, mound.dark, '.art{opacity:.62}', '.far{opacity:.4}'],
+    dark: [ground.dark, mound.dark, field.dark, '.art{opacity:.62}', '.far{opacity:.4}', '.distance{opacity:.3}'],
   }
 }
 
 export const renderScene = (art: SceneArt, view: PileView): string => {
   const parts = baseCss(art, view.level)
   const tower = towerOf(view.fill)
+  const crown = crownOf(art, view.fill, view.fromFill)
   const isScatter = view.transition === 'scatter'
+  const isGust = view.transition === 'grow' || view.transition === 'dive'
   const drifter = art.drifter
   const right: Lane = {
     name: 'dr',
@@ -377,23 +596,27 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
     starts: Array.from({ length: view.level >= 2 ? 4 : 3 }, (_, i) => ({ x: 600 + noise(i * 3 + 17) * 380, y: -60 })),
     landAt: x => (tower.height > 0 && Math.abs(x - PILE_X) < HALF_WIDTH * 0.7 ? GROUND_Y - tower.height + 12 : GROUND_Y - 4),
   }
-  const drops = art.scenery.dropFrom
   const left: Lane = {
     name: 'dl',
     salt: 2,
-    starts: Array.from({ length: 3 }, (_, i) => pick(drops, i) ?? { x: 30 + noise(i * 3 + 29) * 270, y: -60 }),
+    starts: crown.visible.length === 0 ? [] : Array.from({ length: 3 }, (_, i) => {
+      const clump = pick(crown.visible, i * 2) ?? { x: 200, y: 500, r: 40 }
+
+      return { x: clump.x + (noise(i + 51) - 0.5) * clump.r, y: clump.y + clump.r * 0.6 }
+    }),
     landAt: () => GROUND_Y - 4,
   }
   const shadow = tower.height > 0
     ? `<ellipse cx="${PILE_X}" cy="${GROUND_Y + 4}" rx="${HALF_WIDTH + 10}" ry="6" fill="#000" fill-opacity=".08"/>`
     : ''
-  const burst = isScatter ? burstMarkup(art, view, parts) : ''
   const towerPart = towerMarkup(art, view, parts)
+  const collapse = isScatter ? collapseMarkup(art, view) : ''
   const isPopout = isScatter && view.from === 4
   const visitDelay = isPopout ? 40 : -noise(view.seed) * VISIT_SECONDS
   const wanderer = view.level === 4
     ? (view.transition === 'dive' ? diveMarkup(art, view, parts) : '')
     : visitMarkup(art, visitDelay, parts) + (isPopout ? popoutMarkup(art, view, parts) : '')
+  const flights = isGust ? gustMarkup(art, view, parts) : isScatter ? swirlMarkup(art, view, parts) : ''
   const rightLane = driftMarkup(drifter.piece, drifter.colors, view, right, parts)
   const leftLane = driftMarkup(drifter.piece, drifter.colors, view, left, parts)
 
@@ -407,10 +630,12 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
     `${isWarm(view.level) ? ' class="warm"' : ''}>` +
     `<style>${style}</style>` +
     '<rect class="ground" width="100%" height="100%"/>' +
-    '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMinYMax meet">' +
-    `<g class="art"><g class="scenery">${art.scenery.markup}</g>${leftLane}</g></svg>` +
-    '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMaxYMax meet">' +
-    `<g class="art">${shadow}${litterMarkup(art, view)}${towerPart}${burst}${rightLane}${wanderer}</g></svg>` +
+    distanceMarkup(art, view) +
+    '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMinYMax meet"><g class="art">' +
+    `<g class="scenery">${art.scenery.markup}</g>${treeMarkup(art, view)}${groundMarkup(art, view, 'left')}${leftLane}</g></svg>` +
+    '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMaxYMax meet"><g class="art">' +
+    `${shadow}${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}${towerPart}${collapse}${rightLane}${wanderer}</g></svg>` +
+    (flights === '' ? '' : `<g class="art">${flights}</g>`) +
     '</svg>'
   )
 }

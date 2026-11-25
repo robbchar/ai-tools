@@ -9,7 +9,8 @@ import type { SceneArt } from './seasons/types'
 // A plain stand-in season: shows the scene works with any art.
 const CALM = '#00aa00'
 const WARM = '#ee0000'
-const SCENERY = '<g class="far"><circle cx="400" cy="950" r="9"/></g><rect x="100" y="800" width="20" height="185"/>'
+const SCENERY = '<g class="far"><circle cx="400" cy="950" r="9"/></g>'
+const CLUMPS = Array.from({ length: 10 }, (_, i) => ({ x: 60 + i * 30, y: 400 + (i % 3) * 40, r: 50 }))
 const art: SceneArt = {
   describe: level => `level ${level}`,
   ground: { light: '#ffffff', dark: '#000000' },
@@ -21,7 +22,11 @@ const art: SceneArt = {
     warmColors: [WARM],
   },
   drifter: { piece: fill => `<rect width="4" height="4" fill="${fill}"/>`, colors: ['#0000ee'] },
-  scenery: { markup: SCENERY, dropFrom: [{ x: 110, y: 800 }] },
+  scenery: {
+    markup: SCENERY,
+    tree: { branches: '<path class="bough" d="M200 985V500"/>', clumps: CLUMPS, colors: ['#884400'], lastLeaf: { x: 300, y: 480 } },
+  },
+  distance: { field: { light: '#dddddd', dark: '#222222' }, trees: fullness => `<circle class="far-tree" data-full="${fullness}" r="9"/>` },
   wanderer: {
     body: '<g class="head"><circle r="3"/></g><g class="leg-a"><path d="M0 0v5"/></g><g class="leg-b"><path d="M2 0v5"/></g>',
     peek: '<path class="tail" d="M0 0l5 -9"/>',
@@ -40,14 +45,16 @@ const at = (percent: number, transition: Transition = 'none', fromPercent = perc
 
 const count = (svg: string, pattern: RegExp) => svg.match(pattern)?.length ?? 0
 const towerPieces = (svg: string) => count(svg, /class="piece"/g)
+const clumps = (svg: string) => count(svg, /class="clump"/g)
 
-// The tower's outline as x,y pairs, from its path.
-const outline = (svg: string) => {
-  const numbers = (svg.match(/class="mound" d="([^"]+)"/)?.[1] ?? '').match(/-?\d+(\.\d+)?/g)?.map(Number) ?? []
+// The first path classed mound after a marker, as x,y pairs.
+const outline = (svg: string, after = '') => {
+  const from = after === '' ? 0 : svg.indexOf(after)
+  const numbers = (svg.slice(from).match(/class="mound" d="([^"]+)"/)?.[1] ?? '').match(/-?\d+(\.\d+)?/g)?.map(Number) ?? []
 
   return Array.from({ length: numbers.length / 2 }, (_, i) => ({ x: numbers[i * 2] ?? 0, y: numbers[i * 2 + 1] ?? 0 }))
 }
-const top = (svg: string) => Math.min(...outline(svg).map(point => point.y))
+const top = (svg: string, after = '') => Math.min(...outline(svg, after).map(point => point.y))
 const base = (svg: string) => {
   const points = outline(svg)
 
@@ -127,23 +134,110 @@ describe('the tower', () => {
   })
 })
 
-describe('moves', () => {
-  test('a grow springs up from the old height', () => {
-    const svg = renderScene(art, at(60, 'grow', 40))
-
-    expect(svg).toContain('class="heap grow"')
-    expect(svg).toMatch(/@keyframes grow\{from\{transform:scaleY\(0\.6[67]\)/)
+describe('the big tree', () => {
+  test('is full with no context used', () => {
+    expect(clumps(renderScene(art, at(0)))).toBe(CLUMPS.length)
   })
 
-  test('a settled tower plays no one-time animation', () => {
-    const svg = renderScene(art, at(60))
+  test('loses clumps as the context fills, and never gains them back while it rises', () => {
+    const counts = [0, ...STEPS].map(percent => clumps(renderScene(art, at(percent))))
 
-    expect(svg).not.toContain('class="heap grow"')
-    expect(svg).not.toContain('class="burst')
-    expect(svg).not.toContain('class="dive"')
+    for (const [i, n] of counts.entries()) {
+      if (i > 0) {
+        expect(n).toBeLessThanOrEqual(counts[i - 1] ?? 0)
+      }
+    }
+    expect(counts[10]).toBeLessThan(CLUMPS.length)
+    expect(counts[10]).toBeGreaterThan(0)
   })
 
-  test('the wanderer visits below the wrap-up level', () => {
+  test('is bare from 90%, but for the last leaf', () => {
+    for (const percent of [90, 100]) {
+      const svg = renderScene(art, at(percent))
+
+      expect(clumps(svg)).toBe(0)
+      expect(svg).toContain('class="cling"')
+    }
+    expect(renderScene(art, at(85))).not.toContain('class="cling"')
+  })
+
+  test('always shows its branches', () => {
+    for (const percent of [0, 50, 100]) {
+      expect(renderScene(art, at(percent))).toContain('class="bough"')
+    }
+  })
+})
+
+describe('the gust', () => {
+  test('each step up blows leaves from the tree across to the pile', () => {
+    const svg = renderScene(art, at(55, 'grow', 50))
+
+    expect(count(svg, /class="gust g\d+"/g)).toBeGreaterThan(5)
+    expect(svg).toContain('class="tree gusting"')
+  })
+
+  test('the gust starts at the tree on the left and ends at the pile on the right', () => {
+    const svg = renderScene(art, at(55, 'grow', 50))
+    const frames = svg.match(/@keyframes g0\{[^}]*\}[^@]*\}/)?.[0] ?? ''
+
+    expect(frames).toMatch(/^@keyframes g0\{0%\{transform:translate\(\d+(\.\d+)?vmin/)
+    expect(frames).toMatch(/100%\{transform:translate\(calc\(100vw - \d+(\.\d+)?vmin\)/)
+  })
+
+  test('the clumps a step strips fall away during the gust', () => {
+    const svg = renderScene(art, at(50, 'grow', 0))
+    const lost = clumps(renderScene(art, at(0))) - clumps(renderScene(art, at(50)))
+
+    expect(count(svg, /class="clump leave"/g)).toBe(lost)
+  })
+
+  test('a settled scene has no gust', () => {
+    const svg = renderScene(art, at(55))
+
+    expect(svg).not.toContain('class="gust')
+    expect(svg).not.toContain('class="tree gusting"')
+    expect(svg).not.toContain('clump leave')
+  })
+
+  test('reaching the wrap-up level gusts and dives', () => {
+    const svg = renderScene(art, at(92, 'dive', 85))
+
+    expect(svg).toContain('class="dive"')
+    expect(svg).toContain('class="gust g0"')
+  })
+})
+
+describe('after a compact', () => {
+  test('the old tower collapses where it stood', () => {
+    const svg = renderScene(art, at(10, 'scatter', 95))
+
+    expect(svg).toContain('class="collapse"')
+    expect(top(svg, 'class="collapse"')).toBe(top(renderScene(art, at(95))))
+  })
+
+  test('leaves swirl from the pile on the right back up to the tree on the left', () => {
+    const svg = renderScene(art, at(10, 'scatter', 95))
+    const frames = svg.match(/@keyframes s0\{[^}]*\}[^@]*\}/)?.[0] ?? ''
+
+    expect(count(svg, /class="swirl s\d+"/g)).toBeGreaterThan(15)
+    expect(frames).toMatch(/^@keyframes s0\{0%\{transform:translate\(calc\(100vw - \d+(\.\d+)?vmin\)/)
+    expect(frames).toMatch(/100%\{transform:translate\(\d+(\.\d+)?vmin/)
+  })
+
+  test('the tree grows its leaves back', () => {
+    const svg = renderScene(art, at(10, 'scatter', 95))
+
+    expect(count(svg, /class="clump arrive"/g)).toBe(clumps(renderScene(art, at(10))))
+  })
+
+  test('the wanderer pops out if it was in the pile', () => {
+    expect(renderScene(art, at(10, 'scatter', 95))).toContain('class="popout"')
+    expect(renderScene(art, at(5, 'scatter', 60))).not.toContain('class="popout"')
+  })
+})
+
+describe('the wanderer', () => {
+  test('visits below the wrap-up level', () => {
     for (const percent of [0, 30, 60, 85]) {
       const svg = renderScene(art, at(percent))
 
@@ -160,38 +254,36 @@ describe('moves', () => {
     expect(Math.abs(peekY - top(svg))).toBeLessThan(40)
   })
 
-  test('reaching the wrap-up level plays the dive once', () => {
-    expect(renderScene(art, at(92, 'dive', 85))).toContain('class="dive"')
+  test('the dive plays once, on reaching the wrap-up level', () => {
     expect(renderScene(art, at(92))).not.toContain('class="dive"')
-  })
-
-  test('a scatter from the wrap-up level throws the old tower and pops the wanderer out', () => {
-    const svg = renderScene(art, at(10, 'scatter', 95))
-
-    expect(count(svg, /class="bit"/g)).toBe(towerPieces(renderScene(art, at(95))))
-    expect(svg).toContain('class="popout"')
-    expect(svg).not.toContain('class="peek"')
-  })
-
-  test('a scatter from lower down throws the tower with no pop-out', () => {
-    const svg = renderScene(art, at(5, 'scatter', 60))
-
-    expect(count(svg, /class="bit"/g)).toBe(towerPieces(renderScene(art, at(60))))
-    expect(svg).not.toContain('class="popout"')
   })
 })
 
-describe('the left side', () => {
-  test("draws the season's scenery at every level", () => {
+describe('the ground and the distance', () => {
+  test('leaves gather on the ground as the context fills', () => {
+    const counts = [0, 50, 100].map(percent => count(renderScene(art, at(percent)), /class="ground-leaf"/g))
+
+    expect(counts[1]).toBeGreaterThan(counts[0] ?? 0)
+    expect(counts[2]).toBeGreaterThan(counts[1] ?? 0)
+  })
+
+  test('far trees stand across the back, thinning a little as the context fills', () => {
+    const full = renderScene(art, at(0))
+    const thin = renderScene(art, at(100))
+
+    expect(count(full, /class="far-tree" data-full="1"/g)).toBe(6)
+    expect(count(thin, /class="far-tree" data-full="0.5"/g)).toBe(6)
+  })
+
+  test("the season's still scenery draws at every level", () => {
     for (const percent of [0, 50, 95]) {
       expect(renderScene(art, at(percent))).toContain(SCENERY)
     }
   })
 
-  test('drifters on the left fall from the scenery', () => {
-    const svg = renderScene(art, at(30))
-
-    expect(svg).toContain('<g transform="translate(110 800)"><g class="drift dl0">')
+  test('leaves drift down from the tree while it has some, and not once it is bare', () => {
+    expect(renderScene(art, at(30))).toContain('class="drift dl0"')
+    expect(renderScene(art, at(95))).not.toContain('class="drift dl')
   })
 })
 
@@ -218,4 +310,3 @@ describe('sceneProblems', () => {
     expect(sceneProblems(`<svg>${'x'.repeat(131_072)}</svg>`)).toHaveLength(1)
   })
 })
-

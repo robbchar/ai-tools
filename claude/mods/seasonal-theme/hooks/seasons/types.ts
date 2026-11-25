@@ -11,6 +11,9 @@ export type ModeColor = { light: string; dark: string }
 // SVG markup for one piece, centred on 0,0 and about 24 units across.
 export type PieceArt = (fill: string, variant: number) => string
 
+// A clump of a tree's leaves: a lumpy disc at x, y with radius r.
+export type Clump = { x: number; y: number; r: number }
+
 export type SceneArt = {
   // What a reader who can't see the scene is told, for each pile level.
   describe: (level: Level) => string
@@ -26,10 +29,25 @@ export type SceneArt = {
   }
   // What drifts down now and then: leaves, snowflakes, petals.
   drifter: { piece: PieceArt; colors: readonly string[] }
-  // Still art in the bottom-left corner, on a 1000-unit stage with the ground at y=985.
-  // Groups classed `far` are drawn faint, as if in the distance. Drifters on the left
-  // fall from the `dropFrom` points, such as a tree's branches.
-  scenery: { markup: string; dropFrom: readonly { x: number; y: number }[] }
+  // The bottom-left corner, on a 1000-unit stage with the ground at y=985.
+  scenery: {
+    // Still art; groups classed `far` draw faint, as if in the distance.
+    markup: string
+    // The big tree: full with no context used, bare by 90%. Its clumps of leaves fall
+    // away as the pile grows, and the gusts that feed the pile start from them.
+    tree: {
+      branches: string
+      clumps: readonly Clump[]
+      colors: readonly string[]
+      lastLeaf: { x: number; y: number }
+    }
+  }
+  // Across the back of the window: a field, and clusters of far trees on it.
+  distance: {
+    field: ModeColor
+    // One cluster in a 120 by 100 box, base on y=100; fullness runs from 1 (full) to 0.5.
+    trees: (fullness: number, variant: number) => string
+  }
   // Faces left with feet on y=0, about 90 units tall. Groups classed `head`,
   // `leg-a` and `leg-b` are animated, so they carry no transform attribute.
   wanderer: {
