@@ -157,22 +157,35 @@ const hill =
   `<g transform="translate(610 944) scale(.55)">${scarecrow}</g>` +
   '</g>'
 
-// A cluster of far trees in a 120 by 100 box; thinner crowns as the season wears on.
+// A cluster of far trees in a 120 by 100 box. Crowns shrink in steps and are gone when bare.
 const FAR_CROWNS = ['#c98a4e', '#b96b3c', '#d2a457', '#a85a34']
+const FAR_BARK = '#7a5a40'
+const f1 = (n: number) => n.toFixed(1)
 const farTrees = (fullness: number, variant: number) =>
   [0, 1, 2, 3]
     .slice(0, 2 + (variant % 3))
     .map(k => {
       const x = 12 + k * 32 + ((variant * 17 + k * 11) % 18)
       const height = 34 + ((variant * 13 + k * 29) % 50)
-      const crown = 0.4 + 0.6 * fullness
       const lean = ((variant + k) % 3) - 1
+      const fork = 100 - height * 0.5
+      const bare =
+        `<path d="M${x - 2} 100L${x + lean} ${f1(100 - height * 0.8)}L${x + 2} 100Z" fill="${FAR_BARK}"/>` +
+        `<path d="M${f1(x + lean * 0.5)} ${f1(fork)}l${f1(-height * 0.18)} ${f1(-height * 0.2)}M${f1(x + lean * 0.6)} ${f1(fork - height * 0.1)}l${f1(height * 0.16)} ${f1(-height * 0.18)}" ` +
+        `stroke="${FAR_BARK}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`
 
-      return (
-        `<path d="M${x - 2} 100L${x + lean} ${(100 - height * 0.55).toFixed(1)}L${x + 2} 100Z" fill="#7a5a40"/>` +
-        `<ellipse cx="${x + lean}" cy="${(100 - height * 0.6).toFixed(1)}" rx="${(height * 0.26 * crown).toFixed(1)}" ry="${(height * 0.36 * crown).toFixed(1)}" fill="${FAR_CROWNS[(variant + k) % FAR_CROWNS.length] ?? ''}"/>` +
-        `<ellipse cx="${x + lean + height * 0.1}" cy="${(100 - height * 0.72).toFixed(1)}" rx="${(height * 0.16 * crown).toFixed(1)}" ry="${(height * 0.2 * crown).toFixed(1)}" fill="${FAR_CROWNS[(variant + k + 2) % FAR_CROWNS.length] ?? ''}"/>`
-      )
+      if (fullness === 0) {
+        return bare
+      }
+
+      const size = 0.45 + 0.55 * fullness
+      const main = `<ellipse cx="${x + lean}" cy="${f1(100 - height * 0.6)}" rx="${f1(height * 0.26 * size)}" ry="${f1(height * 0.36 * size)}" fill="${FAR_CROWNS[(variant + k) % FAR_CROWNS.length] ?? ''}"/>`
+      const top =
+        fullness > 0.5
+          ? `<ellipse cx="${f1(x + lean + height * 0.1)}" cy="${f1(100 - height * 0.72)}" rx="${f1(height * 0.16 * size)}" ry="${f1(height * 0.2 * size)}" fill="${FAR_CROWNS[(variant + k + 2) % FAR_CROWNS.length] ?? ''}"/>`
+          : ''
+
+      return `${bare}<g class="crown">${main}${top}</g>`
     })
     .join('')
 

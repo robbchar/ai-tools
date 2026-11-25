@@ -45,7 +45,8 @@ export type SceneArt = {
   // Across the back of the window: a field, and clusters of far trees on it.
   distance: {
     field: ModeColor
-    // One cluster in a 120 by 100 box, base on y=100; fullness runs from 1 (full) to 0.5.
+    // One cluster in a 120 by 100 box, base on y=100, at a fullness of 1, 0.66, 0.33 or 0
+    // (bare). Each crown goes in a group classed `crown`, which regrows after a compact.
     trees: (fullness: number, variant: number) => string
   }
   // Faces left with feet on y=0, about 90 units tall. Groups classed `head`,

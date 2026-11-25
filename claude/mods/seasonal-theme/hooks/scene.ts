@@ -518,14 +518,36 @@ const groundMarkup = (art: SceneArt, view: PileView, side: Side): string => {
   }).join('')
 }
 
+// Far trees lose their leaves in three steps, less often than the big tree.
+const farFullness = (fill: number) => (fill >= 90 ? 0 : fill >= 60 ? 0.33 : fill >= 30 ? 0.66 : 1)
+
+// A few tiny leaves falling from a far cluster, in its 120 by 100 box.
+const farDrops = (art: SceneArt, cluster: number): string =>
+  [0, 1, 2]
+    .map(k => {
+      const x = 20 + noise(cluster * 7 + k) * 80
+      const y = 38 + noise(cluster * 7 + k + 3) * 14
+      const delay = r(0.3 + noise(cluster * 7 + k + 5) * 1.6)
+
+      return `<g transform="translate(${r(x)} ${r(y)})"><g class="far-drop fd${k}" style="animation-delay:${delay}s"><g transform="scale(.45)">` +
+        `${art.pile.piece(pick(art.drifter.colors, cluster + k) ?? '', k)}</g></g></g>`
+    })
+    .join('')
+
 // A field across the back of the window, and clusters of far trees standing on it.
 const distanceMarkup = (art: SceneArt, view: PileView): string => {
-  const fullness = Math.round((1 - view.fill / 200) * 100) / 100
-  const trees = FAR_CLUSTERS.map(
-    (x, i) =>
+  const fullness = farFullness(view.fill)
+  const before = farFullness(view.fromFill)
+  const isDrop = (view.transition === 'grow' || view.transition === 'dive') && fullness < before
+  const isRefill = (view.transition === 'scatter' || view.transition === 'shrink') && fullness > before
+  const trees = FAR_CLUSTERS.map((x, i) => {
+    const cluster = art.distance.trees(fullness, i)
+
+    return (
       `<svg x="${x}%" y="${76 + (i % 2)}%" width="10%" height="11%" viewBox="0 0 120 100" preserveAspectRatio="xMidYMax meet" overflow="visible">` +
-      `${art.distance.trees(fullness, i)}</svg>`,
-  )
+      `${isRefill ? `<g class="far-refill">${cluster}</g>` : cluster}${isDrop ? farDrops(art, i) : ''}</svg>`
+    )
+  })
 
   return (
     '<g class="distance">' +
@@ -548,7 +570,12 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
       '.art{opacity:.8}',
       '.far{opacity:.55}',
       '.distance{opacity:.38}',
-      '.drift,.gust,.swirl,.leave,.collapse{opacity:0}',
+      '.drift,.gust,.swirl,.leave,.collapse,.far-drop{opacity:0}',
+      '.fd0{animation:fd0 2.6s ease-in both}.fd1{animation:fd1 3s ease-in both}.fd2{animation:fd2 2.8s ease-in both}',
+      '@keyframes fd0{0%{transform:none;opacity:0}10%,85%{opacity:1}100%{transform:translate(-12px,46px) rotate(220deg);opacity:0}}',
+      '@keyframes fd1{0%{transform:none;opacity:0}10%,85%{opacity:1}100%{transform:translate(9px,50px) rotate(-180deg);opacity:0}}',
+      '@keyframes fd2{0%{transform:none;opacity:0}10%,85%{opacity:1}100%{transform:translate(-4px,42px) rotate(260deg);opacity:0}}',
+      '.far-refill .crown{transform-box:fill-box;transform-origin:50% 80%;animation:arrive 1.1s cubic-bezier(.3,1.4,.5,1) 2s both}',
       '.head,.leg-a,.leg-b{transform-box:fill-box}',
       '.head{transform-origin:85% 90%}',
       '.leg-a,.leg-b{transform-origin:50% 0}',

@@ -8,7 +8,7 @@ Claude Code mod: a seasonal look for the desktop app, with two signals on top of
 | Leaves: the big tree's crown and the pile in the bottom-right corner | how much of the context window is left (the tree) and used (the pile) | the backdrop |
 | `WSL` / `WIN` badge | where Claude Code is running | the status line under the prompt |
 
-Only fall exists so far: a cream and hearth-brown palette, leaves that drift down now and then, and a cartoon turkey that wanders in to peck about. The leaves are the context. A big tree on the left starts in full leaf and goes bare as the window fills, and with each step a gust carries its leaves across to the pile on the right. Far trees along the horizon thin a little too, and leaves gather on the ground. Pumpkins sit at the big tree's foot, and a scarecrow stands on a hill in the distance.
+Only fall exists so far: a cream and hearth-brown palette, leaves that drift down now and then, and a cartoon turkey that wanders in to peck about. The leaves are the context. A big tree on the left starts in full leaf and goes bare as the window fills, and with each step a gust carries its leaves across to the pile on the right. Far trees along the horizon drop their leaves too, in three bigger steps at 30%, 60% and 90%, and leaves gather on the ground. Pumpkins sit at the big tree's foot, and a scarecrow stands on a hill in the distance.
 
 ## The tree and the pile
 
@@ -22,7 +22,7 @@ Both move in steps of 5% of the context window. The pile keeps the same width an
 | 75–90% | nearly bare | turns redder and wobbles more, as a gentle warning |
 | 90% and up | bare, but for one last leaf | the turkey launches itself to the top and dives in, and only its tail feathers stick out: time to wrap up or compact |
 
-Each step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again. If the turkey was in the pile, it floats down from the top. Everything updates after each turn, since that's when Claude Code measures the context window.
+Each step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top. Everything updates after each turn, since that's when Claude Code measures the context window.
 
 `/leaves 80` previews the pile at 80% without touching the live reading. `/leaves off` goes back to live, and `/leaves` on its own says where things stand.
 
@@ -63,7 +63,7 @@ The mod's **Season** setting is `auto` by default, which picks by date: December
    - `wanderer.peek`: what sticks out of the top of the pile at 90% and up.
    - `scenery.tree`: the big tree's branches, the clumps of leaves it loses as context fills, their colors, and where the last leaf clings.
    - `scenery.markup`: still art for the bottom-left corner. Groups classed `far` draw faint, as if in the distance.
-   - `distance`: the field's color, and a cluster of far trees drawn at a fullness from 1 down to 0.5.
+   - `distance`: the field's color, and a cluster of far trees drawn at a fullness of 1, 0.66, 0.33 or 0 (bare), with each crown in a group classed `crown` so it can regrow.
 2. Add it to `SEASONS` in `hooks/seasons/index.ts`.
 3. Add its id to the `season` options in `.claude-plugin/plugin.json`.
 

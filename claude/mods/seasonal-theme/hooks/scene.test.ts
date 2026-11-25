@@ -267,12 +267,32 @@ describe('the ground and the distance', () => {
     expect(counts[2]).toBeGreaterThan(counts[1] ?? 0)
   })
 
-  test('far trees stand across the back, thinning a little as the context fills', () => {
-    const full = renderScene(art, at(0))
-    const thin = renderScene(art, at(100))
+  test('far trees stand across the back and lose their leaves in three steps, at 30, 60 and 90%', () => {
+    const fullnessAt = (percent: number) => [
+      ...new Set(renderScene(art, at(percent)).match(/class="far-tree" data-full="[^"]+"/g) ?? []),
+    ]
 
-    expect(count(full, /class="far-tree" data-full="1"/g)).toBe(6)
-    expect(count(thin, /class="far-tree" data-full="0.5"/g)).toBe(6)
+    expect(count(renderScene(art, at(0)), /class="far-tree"/g)).toBe(6)
+    expect(fullnessAt(0)).toEqual(['class="far-tree" data-full="1"'])
+    expect(fullnessAt(25)).toEqual(['class="far-tree" data-full="1"'])
+    expect(fullnessAt(30)).toEqual(['class="far-tree" data-full="0.66"'])
+    expect(fullnessAt(55)).toEqual(['class="far-tree" data-full="0.66"'])
+    expect(fullnessAt(60)).toEqual(['class="far-tree" data-full="0.33"'])
+    expect(fullnessAt(85)).toEqual(['class="far-tree" data-full="0.33"'])
+    expect(fullnessAt(90)).toEqual(['class="far-tree" data-full="0"'])
+    expect(fullnessAt(100)).toEqual(['class="far-tree" data-full="0"'])
+  })
+
+  test('a step that crosses one of those marks drops a few leaves from the far trees', () => {
+    expect(count(renderScene(art, at(30, 'grow', 25)), /class="far-drop fd\d"/g)).toBeGreaterThan(6)
+    expect(renderScene(art, at(35, 'grow', 30))).not.toContain('class="far-drop')
+    expect(renderScene(art, at(30))).not.toContain('class="far-drop')
+  })
+
+  test('after a compact the far trees grow their leaves back with the big tree', () => {
+    expect(count(renderScene(art, at(10, 'scatter', 95)), /class="far-refill"/g)).toBe(6)
+    expect(renderScene(art, at(10))).not.toContain('class="far-refill"')
+    expect(renderScene(art, at(35, 'scatter', 55))).not.toContain('class="far-refill"')
   })
 
   test("the season's still scenery draws at every level", () => {
