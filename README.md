@@ -19,6 +19,7 @@ ai-tools/
     │       ├── smart_approver.py
     │       └── test_smart_approver.py
     ├── mods/
+    │   ├── seasonal-theme/
     │   └── term-here/
     └── skills/
         ├── challenge-review/
@@ -114,6 +115,12 @@ SMART_APPROVER_VERBOSE=1 claude
 ### Mods
 
 Claude Code plugins, each loaded from its folder through `CLAUDE_CODE_PLUGIN_DIRS`. Each has its own README with setup steps.
+
+---
+
+##### `seasonal-theme`
+
+A seasonal look for the desktop app, picked by date (fall for now). A leaf pile in the corner grows with context usage, a turkey dives into it at 90%, and a `WSL` or `WIN` badge in the status line shows where Claude Code runs. `/leaves <percent>` previews the pile. Setup: [claude/mods/seasonal-theme/README.md](claude/mods/seasonal-theme/README.md).
 
 ---
 
