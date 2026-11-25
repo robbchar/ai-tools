@@ -604,7 +604,7 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
       wood.light,
       ink.light,
       warmInk.light,
-      '.sign{opacity:.94}.post{fill:#7a5230}.board{stroke:#7a5230;stroke-width:3}.grain{stroke:#7a5230;stroke-opacity:.25;stroke-width:1.5}.caption{opacity:.75}',
+      '.sign,.critter{opacity:.94}.post{fill:#7a5230}.board{stroke:#7a5230;stroke-width:3}.grain{stroke:#7a5230;stroke-opacity:.25;stroke-width:1.5}.caption{opacity:.75}',
       '.art{opacity:.8}',
       '.far{opacity:.55}',
       '.distance{opacity:.38}',
@@ -699,8 +699,8 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMinYMax meet"><g class="art">' +
     `<g class="scenery">${art.scenery.markup}</g>${treeMarkup(art, view)}${groundMarkup(art, view, 'left')}${leftLane}</g></svg>` +
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMaxYMax meet"><g class="art">' +
-    `${shadow}${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}${towerPart}${collapse}${rightLane}${wanderer}</g>` +
-    `${signMarkup(art, view)}</svg>` +
+    `${shadow}${towerPart}${collapse}${rightLane}</g>${signMarkup(art, view)}` +
+    `<g class="art">${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}</g><g class="critter">${wanderer}</g></svg>` +
     (flights === '' ? '' : `<g class="art">${flights}</g>`) +
     '</svg>'
   )

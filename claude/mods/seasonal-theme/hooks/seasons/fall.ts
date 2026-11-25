@@ -134,7 +134,7 @@ const pumpkins =
   pumpkin(360, 44) +
   pumpkin(398, 30)
 
-// A small, faint scarecrow on a low hill in the distance; feet on y=0 before it is placed.
+// A scarecrow on a low hill in the distance; feet on y=0 before it is placed.
 const STRAW = 'stroke="#d8b65a" stroke-width="3" stroke-linecap="round"'
 const scarecrow =
   '<rect x="-3" y="-150" width="6" height="150" fill="#7a5230"/>' +
@@ -144,18 +144,18 @@ const scarecrow =
   '<path d="M-26 -62H26L22 -24H6L0 -50 -6 -24H-22Z" fill="#5f6b7a"/>' +
   `<path d="M-46 -112l-10 -4M-46 -110l-11 3M-46 -108l-8 8M46 -112l10 -4M46 -110l11 3M46 -108l8 8" ${STRAW}/>` +
   `<path d="M-14 -24l-3 9M-12 -24l1 10M12 -24l-1 10M14 -24l3 9" ${STRAW}/>` +
-  '<circle cy="-130" r="15" fill="#d9c08a"/>' +
-  '<circle cx="-5" cy="-132" r="1.8" fill="#4a3320"/><circle cx="5" cy="-132" r="1.8" fill="#4a3320"/>' +
-  '<path d="M-6 -124q6 4 12 0" stroke="#4a3320" stroke-width="1.6" fill="none"/>' +
+  '<circle cy="-130" r="15" fill="#d9c08a" stroke="#9a7a48" stroke-width="1.5"/>' +
+  '<circle cx="-9" cy="-126" r="2.6" fill="#d98a6a"/><circle cx="9" cy="-126" r="2.6" fill="#d98a6a"/>' +
+  '<circle cx="-5.5" cy="-133" r="2.8" fill="#3a2414"/><circle cx="5.5" cy="-133" r="2.8" fill="#3a2414"/>' +
+  '<path d="M-7 -124q7 5 14 0" stroke="#3a2414" stroke-width="2.4" stroke-linecap="round" fill="none"/>' +
   '<ellipse cy="-142" rx="26" ry="5" fill="#6b4a2a"/>' +
   '<path d="M-13 -143L-10 -160H10L13 -143Z" fill="#6b4a2a"/>' +
   '<rect x="-12" y="-148" width="24" height="3" fill="#a4583a"/>'
 
+// The hill stays faint; the scarecrow on it stands out enough to see his face.
 const hill =
-  '<g class="far">' +
-  '<path d="M440 985C500 950 590 935 680 942C740 948 780 965 820 985Z" fill="#b98a55" fill-opacity=".35"/>' +
-  `<g transform="translate(610 944) scale(.55)">${scarecrow}</g>` +
-  '</g>'
+  '<g class="far"><path d="M440 985C500 950 590 935 680 942C740 948 780 965 820 985Z" fill="#b98a55" fill-opacity=".35"/></g>' +
+  `<g transform="translate(610 944) scale(.7)">${scarecrow}</g>`
 
 // A cluster of far trees in a 120 by 100 box. Crowns shrink in steps and are gone when bare.
 const FAR_CROWNS = ['#c98a4e', '#b96b3c', '#d2a457', '#a85a34']
@@ -189,12 +189,13 @@ const farTrees = (fullness: number, variant: number) =>
     })
     .join('')
 
-// A little acorn for the sign's corner.
+// A little acorn for the sign's corner, outlined so it stands out from the wood.
 const acorn =
-  '<g transform="rotate(-20)">' +
-  '<ellipse cx="0" cy="3" rx="5" ry="6.5" fill="#a8743c"/>' +
-  '<path d="M-6.5 0a6.5 3.5 0 0 1 13 0Z" fill="#6b4a2a"/>' +
-  '<path d="M0 -3v-3" stroke="#6b4a2a" stroke-width="1.6" stroke-linecap="round"/>' +
+  '<g transform="rotate(-20) scale(1.3)">' +
+  '<ellipse cx="0" cy="3" rx="5" ry="6.5" fill="#8a4a1c" stroke="#3e2412" stroke-width="1"/>' +
+  '<ellipse cx="-1.8" cy="2" rx="1.3" ry="2.6" fill="#c4844a"/>' +
+  '<path d="M-6.5 0a6.5 3.5 0 0 1 13 0Z" fill="#4e2f17" stroke="#3e2412" stroke-width="1"/>' +
+  '<path d="M0 -3v-3" stroke="#3e2412" stroke-width="1.8" stroke-linecap="round"/>' +
   '</g>'
 
 const DESCRIPTIONS: Record<Level, string> = {

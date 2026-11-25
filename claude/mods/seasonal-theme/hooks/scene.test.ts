@@ -330,6 +330,24 @@ describe('the sign', () => {
     expect([25, 30, 55, 60, 85, 90, 100].map(stuck)).toEqual([0, 2, 2, 4, 4, 6, 6])
   })
 
+  test('the turkey walks, dives and pops out in front of it', () => {
+    const post = (svg: string) => svg.indexOf('class="post"')
+    const visit = renderScene(art, at(42))
+    const dive = renderScene(art, at(92, 'dive', 85))
+    const popout = renderScene(art, at(10, 'scatter', 95))
+
+    expect(visit.indexOf('class="visit"')).toBeGreaterThan(post(visit))
+    expect(dive.indexOf('class="dive"')).toBeGreaterThan(post(dive))
+    expect(popout.indexOf('class="popout"')).toBeGreaterThan(post(popout))
+  })
+
+  test('leaves on the ground lie in front of its post', () => {
+    const svg = renderScene(art, at(42))
+
+    expect(svg.lastIndexOf('class="ground-leaf"')).toBeGreaterThan(svg.indexOf('class="post"'))
+    expect(svg.indexOf('class="litter"')).toBeGreaterThan(svg.indexOf('class="post"'))
+  })
+
   test('turns to the warning ink from 75%', () => {
     expect(renderScene(art, at(70))).not.toContain('class="sign warn"')
     expect(renderScene(art, at(75))).toContain('class="sign warn"')
