@@ -604,7 +604,7 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
       wood.light,
       ink.light,
       warmInk.light,
-      '.sign,.critter{opacity:.94}.post{fill:#7a5230}.board{stroke:#7a5230;stroke-width:3}.grain{stroke:#7a5230;stroke-opacity:.25;stroke-width:1.5}.caption{opacity:.75}',
+      '.sign{opacity:.94}.post{fill:#7a5230}.board{stroke:#7a5230;stroke-width:3}.grain{stroke:#7a5230;stroke-opacity:.25;stroke-width:1.5}.caption{opacity:.75}',
       '.art{opacity:.8}',
       '.far{opacity:.55}',
       '.distance{opacity:.38}',
