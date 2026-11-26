@@ -3,8 +3,8 @@ import { r } from '../../stage/svg'
 import type { Parts } from '../../stage/svg'
 import { holdAfterPopout, visitMarkup } from '../../stage/visits'
 
-import { FOX_X, OFFSTAGE_X, snowTopAt } from './geometry'
-import { moveOf } from './snow'
+import { FOX_X, OFFSTAGE_X } from './geometry'
+import { moveOf, surfaceAt } from './snow'
 
 // The visiting fox: faces left, feet on y=0, about 85 tall. Its head and leg pairs animate,
 // so those groups carry no transform of their own.
@@ -67,8 +67,8 @@ const diveMarkup = (top: number, parts: Parts): { behind: string; front: string 
 
 // After a compact from 90% and up: it pops out of the old snow line and runs off.
 const popoutMarkup = (view: PileView, parts: Parts): string => {
-  const from = snowTopAt(view.fromFill)
-  const drop = r(snowTopAt(view.fill) - from)
+  const from = surfaceAt(FOX_X, view.fromFill)
+  const drop = r(surfaceAt(FOX_X, view.fill) - from)
   parts.css.push(
     '.popout{opacity:0;animation:popout 6s linear both}',
     `@keyframes popout{0%{transform:translate(${FOX_X}px,40px);opacity:0}6%{transform:translate(${FOX_X}px,-70px);opacity:1}` +
@@ -84,14 +84,17 @@ const popoutMarkup = (view: PileView, parts: Parts): string => {
 // The fox for this view: `behind` goes under the snow band, so a dive's plunge is hidden;
 // `front` goes over it.
 export const foxMarkup = (view: PileView, phase: number, parts: Parts): { behind: string; front: string } => {
-  const top = snowTopAt(view.fill)
+  // Where the snow's drawn surface is at the fox's spot, drift and all.
+  const top = surfaceAt(FOX_X, view.fill)
   const move = moveOf(view)
   const moving = (markup: string) => (move === '' ? markup : `<g class="${move}">${markup}</g>`)
 
   if (view.level === 4) {
     const isDive = view.transition === 'dive'
     const dive = isDive ? diveMarkup(top, parts) : { behind: '', front: '' }
-    const tail = `<g transform="translate(${FOX_X} ${r(top + 6)})"><g class="tail${isDive ? ' tail-in' : ''}">${TAIL}</g></g>`
+    const tail =
+      `<g transform="translate(${FOX_X} ${r(top + 6)})"><g class="tail${isDive ? ' tail-in' : ''}">${TAIL}</g>` +
+      '<ellipse class="tail-snow" cy="-4" rx="30" ry="9"/></g>'
 
     return { behind: dive.behind, front: moving(tail) + dive.front }
   }

@@ -4,6 +4,7 @@ import type { PileView, Transition } from '../../../types'
 import { fillFor, levelFor } from '../../pile'
 
 import { snowTopAt } from './geometry'
+import { surfaceAt } from './snow'
 import { renderWinter } from './scene'
 
 const view = (percent: number | null, transition: Transition = 'none', fromPercent = percent ?? 0): PileView => ({
@@ -176,5 +177,14 @@ describe('moving snow', () => {
 
     expect(snowRule.split(',')).toContain('.blow')
     expect(snowRule.split(',')).toContain('.slide')
+  })
+})
+
+describe('the house at the top', () => {
+  test('the chimney still stands clear of the snow at 100%', () => {
+    const svg = draw(100)
+    const [, x = 'NaN', y = 'NaN'] = svg.match(/<rect class="chimney" x="([\d.]+)" y="([\d.]+)"/) ?? []
+
+    expect(surfaceAt(Number(x) + 16, 100) - Number(y)).toBeGreaterThan(15)
   })
 })

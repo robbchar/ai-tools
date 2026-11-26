@@ -12,7 +12,8 @@ export const houseMarkup = (view: PileView, parts: Parts): string => {
   const apex = PEAK_Y - 16
   const slopeAt = (t: number) => apex + t * (GROUND_Y - apex)
   const chX = hx + ro * 0.22
-  const chTop = slopeAt(0.22) - 60
+  // Tall enough to stand clear of the snow at 100%.
+  const chTop = slopeAt(0.22) - 82
   const snow = roofSnowAt(view.fill)
   const winBase = GROUND_Y - height * 0.36
   const winTop = PEAK_Y + height * 0.2
@@ -51,7 +52,7 @@ export const houseMarkup = (view: PileView, parts: Parts): string => {
 
   return (
     '<g class="house">' +
-    `<rect class="chimney" x="${r(chX - 16)}" y="${r(chTop)}" width="32" height="90"/>` +
+    `<rect class="chimney" x="${r(chX - 16)}" y="${r(chTop)}" width="32" height="112"/>` +
     `<polygon class="roof" points="${pts([[hx - ro, GROUND_Y], [hx, apex], [hx + ro, GROUND_Y]])}"/>` +
     `<polygon class="gable" points="${pts([[hx - gableHalf, GROUND_Y], [hx, gableTop], [hx + gableHalf, GROUND_Y]])}"/>` +
     planks.join('') +

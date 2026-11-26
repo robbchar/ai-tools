@@ -23,7 +23,7 @@ const RULES: readonly [string, string, ModeColor][] = [
   ['.far-1', 'fill', COLORS.farTree1],
   ['.far-2', 'fill', COLORS.farTree2],
   ['.far-3', 'fill', COLORS.farTree3],
-  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot,.blow,.slide,.puff', 'fill', COLORS.snow],
+  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot,.blow,.slide,.puff,.tail-snow', 'fill', COLORS.snow],
   ['.snow-shade', 'stroke', COLORS.snowShade],
   ['.tree', 'fill', COLORS.tree],
   ['.tree-dark', 'fill', COLORS.treeDark],
@@ -71,9 +71,9 @@ export const renderWinter = (view: PileView, phase: number): string => {
   const sign = signMarkup(view, parts)
   const plan = flakePlan(view)
   flakeCss(parts)
-  const behind = `<g class="haze">${flakesMarkup(plan, ['far'], () => SNOW_AT_90 + 95, parts)}</g>${flakesMarkup(plan, ['mid'], () => 1000, parts)}`
+  const behind = flakesMarkup(plan, ['far'], () => SNOW_AT_90 + 95, parts) + flakesMarkup(plan, ['mid'], () => 1000, parts)
   const land = snowTopAt(view.fill)
-  const front = `<g class="soft">${flakesMarkup(plan, ['near'], () => land, parts)}</g>${flurryMarkup(view, parts)}`
+  const front = flakesMarkup(plan, ['near'], () => land, parts) + flurryMarkup(view, parts)
 
   return frame(
     view,

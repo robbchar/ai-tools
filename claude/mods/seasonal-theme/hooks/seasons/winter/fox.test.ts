@@ -4,7 +4,6 @@ import type { PileView, Transition } from '../../../types'
 import { fillFor, levelFor, settle } from '../../pile'
 import { SCHEDULE, showing } from '../../stage/visits'
 
-import { snowTopAt } from './geometry'
 import { renderWinter } from './scene'
 
 const T = 1_795_000_000_000
@@ -28,9 +27,8 @@ describe('the fox', () => {
     expect(svg).toContain(`animation:visit ${SCHEDULE.seconds}s linear`)
   })
 
-  test('walks on the snow', () => {
-    expect(standsAt(draw(30))).toBe(snowTopAt(30))
-    expect(standsAt(draw(70))).toBe(snowTopAt(70))
+  test('walks higher as the snow rises', () => {
+    expect(standsAt(draw(70))).toBeLessThan(standsAt(draw(30)))
   })
 
   test('dives once, on crossing into 90%', () => {
@@ -76,5 +74,31 @@ describe('the fox', () => {
 
     expect([hidden(dive, 'dive'), hidden(dive, 'puff'), hidden(popout, 'popout')]).toEqual([true, true, true])
     expect(hidden(dive, 'tail') || hidden(draw(95), 'tail')).toBe(false)
+  })
+})
+
+// The drawn snow's height at x, read off the band's polygon.
+const bandAt = (svg: string, x: number) => {
+  const points = (svg.match(/<polygon class="snow" points="([^"]+)"/)?.[1] ?? '').split(' ').map(point => point.split(',').map(Number))
+  const after = points.findIndex(([px = 0]) => px >= x)
+  const [x1 = 0, y1 = 0] = points[after - 1] ?? []
+  const [x2 = 0, y2 = 0] = points[after] ?? []
+
+  return y1 + ((y2 - y1) * (x - x1)) / (x2 - x1)
+}
+
+describe('the fox in the snow', () => {
+  test('stands on the drawn snow, drift and all, when it visits', () => {
+    const svg = draw(40)
+
+    expect(Math.abs(standsAt(svg) - bandAt(svg, 615))).toBeLessThan(3)
+  })
+
+  test("its tail comes up out of the drawn snow, with snow heaped round its base", () => {
+    const svg = draw(95)
+    const tailY = Number(svg.match(/<g transform="translate\(615 ([\d.]+)\)"><g class="tail/)?.[1])
+
+    expect(Math.abs(tailY - 6 - bandAt(svg, 615))).toBeLessThan(3)
+    expect(svg).toMatch(/class="tail[^"]*">.*?<\/g><\/g><ellipse class="tail-snow"/)
   })
 })

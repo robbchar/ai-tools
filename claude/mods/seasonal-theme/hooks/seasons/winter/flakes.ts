@@ -75,7 +75,6 @@ export const flakeCss = (parts: Parts): void => {
     '.flake{opacity:0}.flurry{opacity:0}.sw{transform-box:fill-box;transform-origin:center}',
     '.flake-dot{fill:#fff;stroke:rgba(110,135,160,.45);stroke-width:.9}',
     '.flake-core{stroke:#fff;fill:none;stroke-linecap:round}.flake-edge{stroke:rgba(110,135,160,.45);fill:none;stroke-linecap:round}',
-    '.haze{filter:blur(.7px)}.soft{filter:blur(1.1px)}',
     ...DEPTHS.flatMap(depth => {
       const a = LAYERS[depth].sway
       const k = depth[0]

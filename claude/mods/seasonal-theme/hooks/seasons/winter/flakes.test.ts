@@ -77,3 +77,12 @@ describe('flakes and motion', () => {
     expect(darkBlock(svg)).toContain('.flake-edge{stroke:none')
   })
 })
+
+describe('the cost of the snowfall', () => {
+  test('no moving group is blurred: only the still far trees use a filter', () => {
+    const svg = renderWinter(view(60, 'grow', 55), 0)
+    const filtered = [...svg.matchAll(/([^{}]+)\{[^}]*filter:/g)].map(match => match[1] ?? '')
+
+    expect(filtered.every(selector => /^\.blur\d$/.test(selector))).toBe(true)
+  })
+})
