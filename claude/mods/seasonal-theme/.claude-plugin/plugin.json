@@ -1,0 +1,16 @@
+{
+  "name": "seasonal-theme",
+  "version": "0.1.0",
+  "author": { "name": "Cathedral Tree Dev" },
+  "description": "A seasonal look for the desktop app: a palette and backdrop picked by date, a pile that grows with context usage, and a WSL/Windows badge",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "season": {
+      "type": "string",
+      "title": "Season",
+      "description": "auto picks the season by date; name one to pin it. Dates whose season has no art yet show fall.",
+      "default": "auto",
+      "options": ["auto", "fall"]
+    }
+  }
+}
