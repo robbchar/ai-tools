@@ -5,6 +5,7 @@ import { modeRule } from '../../stage/svg'
 import type { Parts } from '../../stage/svg'
 import type { ModeColor } from '../types'
 
+import { farMarkup } from './far'
 import { LEFT_SPAN, RIGHT_SPAN, SPANS } from './geometry'
 import { houseMarkup } from './house'
 import { COLORS } from './palette'
@@ -15,7 +16,12 @@ import { treeMarkup } from './tree'
 // Every themed color, as a CSS rule with its dark-mode twin.
 const RULES: readonly [string, string, ModeColor][] = [
   ['.ground', 'fill', COLORS.ground],
-  ['.snow,.drift,.cap,.roof-snow,.chimney-cap,.sign-snow,.knot', 'fill', COLORS.snow],
+  ['.field', 'fill', COLORS.field],
+  ['.far-0', 'fill', COLORS.farTree0],
+  ['.far-1', 'fill', COLORS.farTree1],
+  ['.far-2', 'fill', COLORS.farTree2],
+  ['.far-3', 'fill', COLORS.farTree3],
+  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot', 'fill', COLORS.snow],
   ['.snow-shade', 'stroke', COLORS.snowShade],
   ['.tree', 'fill', COLORS.tree],
   ['.tree-dark', 'fill', COLORS.treeDark],
@@ -64,6 +70,7 @@ export const renderWinter = (view: PileView, _phase: number): string => {
     view,
     parts,
     '<rect class="ground" width="100%" height="100%"/>' +
+      farMarkup(view, parts) +
       cornerStages({ span: LEFT_SPAN, markup: left }, { span: RIGHT_SPAN, markup: right }) +
       topLeftStage(SPANS, sign),
   )

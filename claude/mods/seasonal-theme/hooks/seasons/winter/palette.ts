@@ -62,4 +62,5 @@ export const COLORS = {
   farTree0: pair('#a9b8c1', '#323e4a'),
   farTree1: pair('#91a7ab', '#384852'),
   farTree2: pair('#78948f', '#3d524d'),
+  farTree3: pair('#65847b', '#374f48'),
 } as const satisfies Record<string, ModeColor>
