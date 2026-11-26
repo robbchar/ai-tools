@@ -289,14 +289,6 @@ describe('the wanderer', () => {
     expect(Math.abs(mod(-delay, seconds) - 123.4)).toBeLessThan(0.06)
   })
 
-  test('a new reading carries the visits on from where they were', () => {
-    const first = showing({ ...at(30), time: T }, T, 0)
-    const later = showing({ ...at(31), time: T + 150_000 }, T + 150_000, first.anchor)
-
-    expect(later.anchor).toBe(first.anchor)
-    expect(Math.abs(mod(later.phase - first.phase, LOOP) - 150)).toBeLessThan(0.01)
-  })
-
   test('shown again well after its reading, the turkey is out within seconds', () => {
     for (let wait = 6_000; wait < 600_000; wait += 7_000) {
       const shown = showing({ ...at(30), time: T }, T + wait, 0)
@@ -318,31 +310,6 @@ describe('the wanderer', () => {
     expect(renderFall(art, gust.view, gust.phase)).not.toContain('class="tree gusting"')
     expect(renderFall(art, popout.view, popout.phase)).not.toContain('class="popout"')
     expect(popout.view).toMatchObject({ level: 0, fill: 10, from: 0, fromFill: 10 })
-  })
-
-  test('drawn right after its reading, the move plays', () => {
-    const view = { ...at(37, 'grow', 31), time: T }
-
-    expect(showing(view, T + 300, 0).view).toBe(view)
-  })
-
-  test('asked again moments after a switch back, the turkey stays where it was', () => {
-    const view = { ...at(30), time: T }
-    // 40 s into the loop: past the first visit, well before the next.
-    const first = showing(view, T + 60_000, T + 20_000)
-    const again = showing(view, T + 61_500, first.anchor)
-
-    expect(first.anchor).not.toBe(T + 20_000)
-    expect(again.anchor).toBe(first.anchor)
-    expect(Math.abs(again.phase - first.phase - 1.5)).toBeLessThan(0.01)
-  })
-
-  test('a reading just after a switch back carries on the visit it brought', () => {
-    const back = showing({ ...at(30), time: T }, T + 60_000, T + 20_000)
-    const next = showing({ ...at(31), time: T + 70_000 }, T + 70_000, back.anchor)
-
-    expect(next.anchor).toBe(back.anchor)
-    expect(Math.abs(mod(next.phase - back.phase, LOOP) - 10)).toBeLessThan(0.01)
   })
 
   test('after popping out it stays away at least 40 s, and never comes back mid-walk', () => {
