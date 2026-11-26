@@ -35,7 +35,7 @@ Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips 
 
 A frosty blue-gray palette with an amber accent. Snow rises across the whole window, measured against an A-frame house on the right. A tall evergreen stands on the left, far evergreens are scattered across the back (closer and bigger toward the window's sides), and a sign hangs on two ropes from the top-left, in front of everything. The roof, the trees and the sign gather more snow as the window fills, and the far trees sink into their own snow, less the farther away they are.
 
-Snow falls now and then at three depths: far flakes are small, slow, faint dots, and near ones are bigger, faster, soft-focus stars. Each flake rests unseen between falls, the timing reshuffles every redraw, and snow falls more often from 50%. A red fox visits on the same clock as fall's turkey, trotting in along the snow and cocking its head to listen.
+Snow falls now and then at three depths: far flakes are small, slow, faint dots, and near ones are bigger, faster stars that turn as they fall. Each flake rests unseen between falls, the timing reshuffles every redraw, and snow falls more often from 50%. A red fox visits on the same clock as fall's turkey, trotting in along the snow and cocking its head to listen.
 
 | Context used | Snow | Everything else |
 | --- | --- | --- |
