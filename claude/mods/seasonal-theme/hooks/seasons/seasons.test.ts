@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { Level, Transition } from '../../types'
 import { makeColors } from '../make-colors.js'
+import { settle } from '../pile'
 import { renderScene, sceneProblems } from '../scene'
 
 import { SEASONS } from './index'
@@ -24,6 +25,19 @@ for (const season of SEASONS) {
           const view = { level: levelAt(fill), fill, percent: fill, from: levelAt(fromFill), fromFill, transition, time: 12345 }
 
           expect(sceneProblems(renderScene(season.art, view))).toEqual([])
+        }
+      }
+    })
+
+    test('every move between any two fills stays under the size cap', () => {
+      for (const from of FILLS) {
+        for (const to of FILLS) {
+          const view = { level: levelAt(from), fill: from, percent: from, from: levelAt(from), fromFill: from, transition: 'none' as const, time: 12345 }
+          const next = settle(view, { live: from, preview: null }, { live: to, preview: null }, 12345)
+
+          if (next !== null) {
+            expect(sceneProblems(renderScene(season.art, next))).toEqual([])
+          }
         }
       }
     })
