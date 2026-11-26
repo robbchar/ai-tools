@@ -1,12 +1,13 @@
 import type { PileView } from '../../../types'
 import { frame } from '../../stage/frame'
-import { cornerStages, topLeftStage } from '../../stage/layers'
+import { cornerStages, coverLayer, topLeftStage } from '../../stage/layers'
 import { modeRule } from '../../stage/svg'
 import type { Parts } from '../../stage/svg'
 import type { ModeColor } from '../types'
 
 import { farMarkup } from './far'
-import { LEFT_SPAN, RIGHT_SPAN, SPANS } from './geometry'
+import { flakeCss, flakePlan, flakesMarkup, flurryMarkup } from './flakes'
+import { LEFT_SPAN, RIGHT_SPAN, SNOW_AT_90, SPANS, snowTopAt } from './geometry'
 import { houseMarkup } from './house'
 import { COLORS } from './palette'
 import { signMarkup } from './sign'
@@ -65,13 +66,20 @@ export const renderWinter = (view: PileView, _phase: number): string => {
   const left = treeMarkup(view) + treeDrift(view)
   const right = houseMarkup(view, parts) + snowBand(view)
   const sign = signMarkup(view, parts)
+  const plan = flakePlan(view)
+  flakeCss(parts)
+  const behind = `<g class="haze">${flakesMarkup(plan, ['far'], () => SNOW_AT_90 + 95, parts)}</g>${flakesMarkup(plan, ['mid'], () => 1000, parts)}`
+  const land = snowTopAt(view.fill)
+  const front = `<g class="soft">${flakesMarkup(plan, ['near'], () => land, parts)}</g>${flurryMarkup(view, parts)}`
 
   return frame(
     view,
     parts,
     '<rect class="ground" width="100%" height="100%"/>' +
       farMarkup(view, parts) +
+      coverLayer(behind) +
       cornerStages({ span: LEFT_SPAN, markup: left }, { span: RIGHT_SPAN, markup: right }) +
+      coverLayer(front) +
       topLeftStage(SPANS, sign),
   )
 }
