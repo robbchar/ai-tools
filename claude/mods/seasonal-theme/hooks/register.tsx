@@ -6,7 +6,7 @@ import type { PileView, Reading } from '../types'
 import { badgeFor, statusLine } from './environment'
 import { makeColors } from './make-colors.js'
 import { describeReading, parseLeaves, settle } from './pile'
-import { altFor, renderScene } from './scene'
+import { altFor, renderScene, showing } from './scene'
 import { parseChoice, pickSeason } from './season'
 import { AVAILABLE, seasonById } from './seasons'
 
@@ -37,12 +37,23 @@ const applyReading = async ($: EngineInterface, change: (reading: Reading) => Re
   return after
 }
 
+// When a drawing is made; the view's own time where the clock can't be read while drawing.
+const drawingTime = async ($: EngineInterface, view: PileView) => {
+  try {
+    return await $.clock.now()
+  } catch {
+    return view.time
+  }
+}
+
 const isOurs = (plugin: string) => plugin === PLUGIN || plugin.startsWith(`${PLUGIN}@`)
 
 export const register: Register = (on, options) => {
   const choice = parseChoice(options.season)
   // Set at each session start, which a reload runs again.
   let badge: string | undefined
+  // Where the turkey's visit loop starts on the clock (ms); a drawing can't write state, so it lives here.
+  let visitAnchor = 0
 
   on('session.start', async ($, e, next) => {
     const season = seasonById(pickSeason(choice, new Date(await $.clock.now()), AVAILABLE))
@@ -108,8 +119,10 @@ export const register: Register = (on, options) => {
 
     const season = seasonById(e.props.scene)
     const view = await read($, pileAtom)
+    const shown = showing(view, await drawingTime($, view), visitAnchor)
+    visitAnchor = shown.anchor
     const { Svg } = $.ui.resolve(e)
 
-    return <Svg source={renderScene(season.art, view)} alt={altFor(season.art, view)} isInteractive />
+    return <Svg source={renderScene(season.art, shown.view, shown.phase)} alt={altFor(season.art, shown.view)} isInteractive />
   })
 }

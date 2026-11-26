@@ -9,7 +9,7 @@ Claude Code mod: a seasonal look for the desktop app, with two signals on top of
 | Sign beside the pile | the exact context percent | the backdrop |
 | `WSL` / `WIN` badge, then the percent | where Claude Code is running, and the exact percent even when the corner is covered | the status line under the prompt |
 
-Only fall exists so far: a cream and hearth-brown palette, leaves that drift down now and then, and a cartoon turkey that wanders in to peck about, coming back after a random 30 seconds to 2 minutes. Its visits keep time with the clock, so a redraw doesn't restart one. The leaves are the context. A big tree on the left starts in full leaf and goes bare as the window fills, and with each step a gust carries its leaves across to the pile on the right. Far trees along the horizon drop their leaves too, in three bigger steps at 30%, 60% and 90%, and leaves gather on the ground. Pumpkins sit at the big tree's foot, and a scarecrow stands on a hill in the distance.
+Only fall exists so far: a cream and hearth-brown palette, leaves that drift down now and then, and a cartoon turkey that wanders in to peck about, coming back after a random 30 seconds to 2 minutes. A new turn doesn't restart a visit, and when you come back to a session, it's out within a few seconds. The leaves are the context. A big tree on the left starts in full leaf and goes bare as the window fills, and with each step a gust carries its leaves across to the pile on the right. Far trees along the horizon drop their leaves too, in three bigger steps at 30%, 60% and 90%, and leaves gather on the ground. Pumpkins sit at the big tree's foot, and a scarecrow stands on a hill in the distance.
 
 ## The tree and the pile
 
@@ -25,7 +25,7 @@ Both move in steps of 5% of the context window. The pile keeps the same width an
 
 A wooden sign on a post beside the tower shows the exact percent, updated every turn. It collects a couple of stuck leaves at 30%, 60% and 90%, and its numerals turn red from 75%. The status line under the prompt shows the same number after the badge, as `WSL · 42% context`.
 
-Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top and stays away for at least 40 seconds. Everything updates after each turn, since that's when Claude Code measures the context window.
+Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top and stays away for at least 40 seconds. Everything updates after each turn, since that's when Claude Code measures the context window. Coming back to a session later shows the scene as it stands, without replaying its last move.
 
 `/leaves 80` previews the scene at 80% without touching the live reading; the status line marks it `(preview)`. `/leaves off` goes back to live, and `/leaves` on its own says where things stand.
 

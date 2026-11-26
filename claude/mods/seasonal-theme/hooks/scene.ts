@@ -442,8 +442,47 @@ const visitSchedule = (): { starts: readonly number[]; seconds: number } => {
 
 const SCHEDULE = visitSchedule()
 
-// Where the loop stands when a view is drawn: on the clock, so a redraw carries on the same visit.
-const visitPhase = (time: number) => (time / 1000) % SCHEDULE.seconds
+// A drawing this long after its reading is the view shown again (a switch back), not a new move.
+const FRESH_MS = 5_000
+// Seconds from such a showing to the turkey stepping on stage.
+const VISIT_LEAD = 4
+
+// Seconds into the visit loop at `now`, with the loop's start at `anchor` on the clock (both ms).
+const loopAt = (now: number, anchor: number) => {
+  const at = ((now - anchor) / 1000) % SCHEDULE.seconds
+
+  return at < 0 ? at + SCHEDULE.seconds : at
+}
+
+// Seconds until the next visit steps on stage, or 0 while one is under way.
+const untilVisit = (phase: number) => {
+  const start = SCHEDULE.starts.findLast(s => s <= phase) ?? 0
+
+  return phase - start < VISIT.gone ? 0 : (SCHEDULE.starts.find(s => s > phase) ?? SCHEDULE.seconds) - phase
+}
+
+export type Showing = { view: PileView; phase: number; anchor: number }
+
+// A drawing made `now`. Soon after its reading it plays the view's move, and the visits run on from
+// `anchor`. Later, as on a switch back, it shows the view settled and brings the next visit close.
+export const showing = (view: PileView, now: number, anchor: number): Showing => {
+  const phase = loopAt(now, anchor)
+
+  if (now - view.time < FRESH_MS) {
+    return { view, phase, anchor }
+  }
+
+  const settled: PileView = { ...view, from: view.level, fromFill: view.fill, transition: 'none' }
+  const wait = untilVisit(phase)
+
+  if (wait <= VISIT_LEAD + 2) {
+    return { view: settled, phase, anchor }
+  }
+
+  const moved = anchor - Math.round((wait - VISIT_LEAD) * 1000)
+
+  return { view: settled, phase: loopAt(now, moved), anchor: moved }
+}
 
 // How long the visitor stays away after popping out; a visit still under way then is skipped whole.
 const holdAfterPopout = (phase: number) => {
@@ -698,7 +737,8 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
   }
 }
 
-export const renderScene = (art: SceneArt, view: PileView): string => {
+// `phase`: seconds into the turkey's visit loop as this drawing starts.
+export const renderScene = (art: SceneArt, view: PileView, phase = 0): string => {
   const parts = baseCss(art, view.level)
   const tower = towerOf(view.fill)
   const crown = crownOf(art, view.fill, view.fromFill)
@@ -727,7 +767,6 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
   const towerPart = towerMarkup(art, view, parts)
   const collapse = isScatter ? collapseMarkup(art, view) : ''
   const isPopout = isScatter && view.from === 4
-  const phase = visitPhase(view.time)
   const wanderer = view.level === 4
     ? (view.transition === 'dive' ? diveMarkup(art, view, parts) : '')
     : visitMarkup(art, phase, isPopout ? holdAfterPopout(phase) : 0, parts) + (isPopout ? popoutMarkup(art, view, parts) : '')

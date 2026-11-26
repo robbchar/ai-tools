@@ -3,7 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { PileView, Transition } from '../types'
 
 import { fillFor, levelFor } from './pile'
-import { altFor, renderScene, sceneProblems } from './scene'
+import { altFor, renderScene, sceneProblems, showing } from './scene'
 import type { SceneArt } from './seasons/types'
 
 // A plain stand-in season: shows the scene works with any art.
@@ -54,6 +54,8 @@ const count = (svg: string, pattern: RegExp) => svg.match(pattern)?.length ?? 0
 const towerPieces = (svg: string) => count(svg, /class="piece"/g)
 const clumps = (svg: string) => count(svg, /class="clump"/g)
 const mod = (n: number, m: number) => ((n % m) + m) % m
+// A clock reading well into a day, in ms.
+const T = 1_795_000_000_000
 
 // The visit loop as drawn: its length, its start, and each stretch the visitor is on stage, in seconds.
 const visitTimeline = (svg: string) => {
@@ -65,6 +67,7 @@ const visitTimeline = (svg: string) => {
 
   return { seconds, delay: Number(delay), visits }
 }
+const LOOP = visitTimeline(renderScene(art, at(30))).seconds
 
 // The first path classed mound after a marker, as x,y pairs.
 const outline = (svg: string, after = '') => {
@@ -277,17 +280,72 @@ describe('the wanderer', () => {
     expect(new Set(gaps.map(Math.round)).size).toBe(gaps.length)
   })
 
-  test('a redraw picks the visits up where the clock has them', () => {
-    const first = visitTimeline(renderScene(art, { ...at(30), time: 1_000_000 }))
-    const later = visitTimeline(renderScene(art, { ...at(31), time: 1_050_000 }))
+  test('draws the loop at the phase it is given', () => {
+    const { seconds, delay } = visitTimeline(renderScene(art, at(30), 123.4))
 
-    expect(Math.abs(mod(first.delay - later.delay, first.seconds) - 50)).toBeLessThan(0.2)
+    expect(Math.abs(mod(-delay, seconds) - 123.4)).toBeLessThan(0.06)
+  })
+
+  test('a new reading carries the visits on from where they were', () => {
+    const first = showing({ ...at(30), time: T }, T, 0)
+    const later = showing({ ...at(31), time: T + 150_000 }, T + 150_000, first.anchor)
+
+    expect(later.anchor).toBe(first.anchor)
+    expect(Math.abs(mod(later.phase - first.phase, LOOP) - 150)).toBeLessThan(0.01)
+  })
+
+  test('shown again well after its reading, the turkey is out within seconds', () => {
+    for (let wait = 6_000; wait < 600_000; wait += 7_000) {
+      const shown = showing({ ...at(30), time: T }, T + wait, 0)
+      const { seconds, delay, visits } = visitTimeline(renderScene(art, shown.view, shown.phase))
+      const now = mod(-delay, seconds)
+      const isOn = visits.some(visit => now >= visit.start && now < visit.end)
+      const next = Math.min(...visits.map(visit => mod(visit.start - now, seconds)))
+
+      expect(isOn || next <= 6.1).toBe(true)
+    }
+  })
+
+  test('shown again, the last move stays played rather than replaying', () => {
+    const later = T + 60_000
+    const gust = showing({ ...at(37, 'grow', 31), time: T }, later, 0)
+    const popout = showing({ ...at(10, 'scatter', 95), time: T }, later, 0)
+
+    expect(gust.view.transition).toBe('none')
+    expect(renderScene(art, gust.view, gust.phase)).not.toContain('class="tree gusting"')
+    expect(renderScene(art, popout.view, popout.phase)).not.toContain('class="popout"')
+    expect(popout.view).toMatchObject({ level: 0, fill: 10, from: 0, fromFill: 10 })
+  })
+
+  test('drawn right after its reading, the move plays', () => {
+    const view = { ...at(37, 'grow', 31), time: T }
+
+    expect(showing(view, T + 300, 0).view).toBe(view)
+  })
+
+  test('asked again moments after a switch back, the turkey stays where it was', () => {
+    const view = { ...at(30), time: T }
+    // 40 s into the loop: past the first visit, well before the next.
+    const first = showing(view, T + 60_000, T + 20_000)
+    const again = showing(view, T + 61_500, first.anchor)
+
+    expect(first.anchor).not.toBe(T + 20_000)
+    expect(again.anchor).toBe(first.anchor)
+    expect(Math.abs(again.phase - first.phase - 1.5)).toBeLessThan(0.01)
+  })
+
+  test('a reading just after a switch back carries on the visit it brought', () => {
+    const back = showing({ ...at(30), time: T }, T + 60_000, T + 20_000)
+    const next = showing({ ...at(31), time: T + 70_000 }, T + 70_000, back.anchor)
+
+    expect(next.anchor).toBe(back.anchor)
+    expect(Math.abs(mod(next.phase - back.phase, LOOP) - 10)).toBeLessThan(0.01)
   })
 
   test('after popping out it stays away at least 40 s, and never comes back mid-walk', () => {
     const holds: number[] = []
-    for (let time = 0; time < 600_000; time += 7_000) {
-      const svg = renderScene(art, { ...at(10, 'scatter', 95), time })
+    for (let phase = 0; phase < LOOP; phase += 7) {
+      const svg = renderScene(art, at(10, 'scatter', 95), phase)
       const { seconds, delay, visits } = visitTimeline(svg)
       const hold = Number(svg.match(/\.hold\{animation:hold ([\d.]+)s/)?.[1])
       const back = mod(hold - delay, seconds)

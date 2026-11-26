@@ -188,6 +188,47 @@ describe('seasonal-theme', () => {
     expect(Math.abs(moved - 150)).toBeLessThan(0.2)
   })
 
+  test('back at the session a while later, the gust does not replay and the visits run from there', async ($, on) => {
+    let time = new Date(2026, 10, 25, 12).getTime()
+    engine(on, { now: () => time })
+    await start($)
+    await $.session.measure(reading(31))
+    await $.session.measure(reading(37))
+    expect(await drawnScene($)).toContain('class="tree gusting"')
+
+    time += 120_000
+    const back = await drawnScene($)
+    expect(back).not.toContain('class="tree gusting"')
+
+    time += 10_000
+    await $.session.measure(reading(43))
+    const first = visitLoop(back)
+    const moved = (((first.delay - visitLoop(await drawnScene($)).delay) % first.seconds) + first.seconds) % first.seconds
+
+    expect(Math.abs(moved - 10)).toBeLessThan(0.2)
+  })
+
+  test('with no clock while drawing, the scene still draws as of its reading', async ($, on) => {
+    let isDrawing = false
+    engine(on, {
+      now: () => {
+        if (isDrawing) {
+          throw new Error('no clock here')
+        }
+
+        return new Date(2026, 10, 25, 12).getTime()
+      },
+    })
+    await start($)
+    await $.session.measure(reading(31))
+    await $.session.measure(reading(37))
+    isDrawing = true
+
+    const svg = await drawnScene($)
+    expect(svg).toContain('class="tree gusting"')
+    expect(svg).toContain('class="visit"')
+  })
+
   test('crossing 90% dives, and a compact scatters the pile', async ($, on) => {
     engine(on)
     await start($)
