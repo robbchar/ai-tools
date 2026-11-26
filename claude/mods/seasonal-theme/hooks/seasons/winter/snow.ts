@@ -16,7 +16,7 @@ export const surfaceAt = (x: number, fill: number): number =>
   r(snowTopAt(fill) + Math.sin(x / 140) * 5 + Math.sin(x / 53 + 1) * 2.5 - 14 * Math.exp(-(((x - HOUSE_DRIFT_X) / 70) ** 2)))
 
 // How the snow moves into this view: up after a step, down after a drop or a compact.
-const moveOf = (view: PileView): '' | 'rise' | 'sink' => {
+export const moveOf = (view: PileView): '' | 'rise' | 'sink' => {
   const shift = snowTopAt(view.fromFill) - snowTopAt(view.fill)
 
   if (shift > 0 && (view.transition === 'grow' || view.transition === 'dive')) {

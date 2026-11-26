@@ -6,6 +6,7 @@ import type { Parts } from '../../stage/svg'
 import type { ModeColor } from '../types'
 
 import { farMarkup } from './far'
+import { FOX_CSS, foxMarkup } from './fox'
 import { flakeCss, flakePlan, flakesMarkup, flurryMarkup } from './flakes'
 import { LEFT_SPAN, RIGHT_SPAN, SNOW_AT_90, SPANS, snowTopAt } from './geometry'
 import { houseMarkup } from './house'
@@ -22,7 +23,7 @@ const RULES: readonly [string, string, ModeColor][] = [
   ['.far-1', 'fill', COLORS.farTree1],
   ['.far-2', 'fill', COLORS.farTree2],
   ['.far-3', 'fill', COLORS.farTree3],
-  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot,.blow,.slide', 'fill', COLORS.snow],
+  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot,.blow,.slide,.puff', 'fill', COLORS.snow],
   ['.snow-shade', 'stroke', COLORS.snowShade],
   ['.tree', 'fill', COLORS.tree],
   ['.tree-dark', 'fill', COLORS.treeDark],
@@ -61,10 +62,12 @@ const baseCss = (): Parts => {
 }
 
 // Winter: snow rising across the window, measured against an A-frame house.
-export const renderWinter = (view: PileView, _phase: number): string => {
+export const renderWinter = (view: PileView, phase: number): string => {
   const parts = baseCss()
+  parts.css.push(FOX_CSS)
+  const fox = foxMarkup(view, phase, parts)
   const left = treeMarkup(view, parts) + treeDrift(view)
-  const right = houseMarkup(view, parts) + snowBand(view, parts)
+  const right = houseMarkup(view, parts) + fox.behind + snowBand(view, parts) + fox.front
   const sign = signMarkup(view, parts)
   const plan = flakePlan(view)
   flakeCss(parts)
