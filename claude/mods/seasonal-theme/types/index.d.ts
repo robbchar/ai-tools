@@ -12,7 +12,8 @@ export type PileView = {
   from: Level
   fromFill: number
   transition: Transition
-  seed: number
+  // When this view was written, in ms: varies the drift and keeps the turkey's visits on the clock.
+  time: number
 }
 
 // Context fill as last measured, and a /leaves preview that stands in for it.

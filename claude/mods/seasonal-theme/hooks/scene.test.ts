@@ -47,12 +47,24 @@ const at = (percent: number, transition: Transition = 'none', fromPercent = perc
   from: levelFor(fromPercent),
   fromFill: fillFor(fromPercent),
   transition,
-  seed: 42,
+  time: 42,
 })
 
 const count = (svg: string, pattern: RegExp) => svg.match(pattern)?.length ?? 0
 const towerPieces = (svg: string) => count(svg, /class="piece"/g)
 const clumps = (svg: string) => count(svg, /class="clump"/g)
+const mod = (n: number, m: number) => ((n % m) + m) % m
+
+// The visit loop as drawn: its length, its start, and each stretch the visitor is on stage, in seconds.
+const visitTimeline = (svg: string) => {
+  const [, length = 'NaN', delay = 'NaN'] = svg.match(/animation:visit ([\d.]+)s linear (-?[\d.]+)s infinite/) ?? []
+  const seconds = Number(length)
+  const frames = svg.match(/@keyframes visit\{(.*?)\}\}/)?.[1] ?? ''
+  const away = [...frames.matchAll(/([\d.]+)%\{transform:translateX/g)].map(m => (Number(m[1]) / 100) * seconds).slice(0, -1)
+  const visits = Array.from({ length: away.length / 2 }, (_, k) => ({ start: away[2 * k] ?? NaN, end: away[2 * k + 1] ?? NaN }))
+
+  return { seconds, delay: Number(delay), visits }
+}
 
 // The first path classed mound after a marker, as x,y pairs.
 const outline = (svg: string, after = '') => {
@@ -251,6 +263,46 @@ describe('the wanderer', () => {
       expect(count(svg, /class="visit"/g)).toBe(1)
       expect(svg).not.toContain('class="peek"')
     }
+  })
+
+  test('comes out again after 30 seconds to 2 minutes, a different wait each time', () => {
+    const { seconds, visits } = visitTimeline(renderScene(art, at(30)))
+    const gaps = visits.map((visit, k) => (visits[k + 1]?.start ?? seconds + (visits[0]?.start ?? 0)) - visit.end)
+
+    expect(visits.length).toBeGreaterThan(3)
+    for (const gap of gaps) {
+      expect(gap).toBeGreaterThan(29.9)
+      expect(gap).toBeLessThan(120.1)
+    }
+    expect(new Set(gaps.map(Math.round)).size).toBe(gaps.length)
+  })
+
+  test('a redraw picks the visits up where the clock has them', () => {
+    const first = visitTimeline(renderScene(art, { ...at(30), time: 1_000_000 }))
+    const later = visitTimeline(renderScene(art, { ...at(31), time: 1_050_000 }))
+
+    expect(Math.abs(mod(first.delay - later.delay, first.seconds) - 50)).toBeLessThan(0.2)
+  })
+
+  test('after popping out it stays away at least 40 s, and never comes back mid-walk', () => {
+    const holds: number[] = []
+    for (let time = 0; time < 600_000; time += 7_000) {
+      const svg = renderScene(art, { ...at(10, 'scatter', 95), time })
+      const { seconds, delay, visits } = visitTimeline(svg)
+      const hold = Number(svg.match(/\.hold\{animation:hold ([\d.]+)s/)?.[1])
+      const back = mod(hold - delay, seconds)
+      holds.push(hold)
+
+      expect(hold).toBeGreaterThan(39.9)
+      expect(visits.some(visit => back > visit.start + 0.1 && back < visit.end - 0.1)).toBe(false)
+    }
+    expect(Math.min(...holds)).toBe(40)
+    expect(Math.max(...holds)).toBeGreaterThan(40)
+  })
+
+  test('only a pop-out holds the visits back', () => {
+    expect(renderScene(art, at(30))).not.toContain('class="hold"')
+    expect(renderScene(art, at(5, 'scatter', 60))).not.toContain('class="hold"')
   })
 
   test('at the wrap-up level only the peek shows, at the top of the tower', () => {

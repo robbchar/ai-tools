@@ -32,7 +32,7 @@ const transitionTo = (view: PileView, level: Level, fill: number, before: number
 }
 
 // The view to draw after the reading changes, or null when the drawing would not change.
-export const settle = (view: PileView, before: Reading, after: Reading, seed: number): PileView | null => {
+export const settle = (view: PileView, before: Reading, after: Reading, time: number): PileView | null => {
   const percent = effectivePercent(after)
   const level = levelFor(percent)
   const fill = fillFor(percent)
@@ -52,7 +52,7 @@ export const settle = (view: PileView, before: Reading, after: Reading, seed: nu
     from: view.level,
     fromFill: view.fill,
     transition: isStill ? 'none' : transitionTo(view, level, fill, effectivePercent(before), percent),
-    seed,
+    time,
   }
 }
 

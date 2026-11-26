@@ -15,8 +15,8 @@ const PLUGIN = 'seasonal-theme'
 // Change a shape tag when its value's fields change: a reload keeps what older code stored.
 const pileAtom = atom(
   { plugin: 'seasonal-theme', key: 'pile' } as const,
-  { level: 0, fill: 0, percent: null, from: 0, fromFill: 0, transition: 'none', seed: 0 } satisfies PileView as PileView,
-  { shape: 'pile-3' },
+  { level: 0, fill: 0, percent: null, from: 0, fromFill: 0, transition: 'none', time: 0 } satisfies PileView as PileView,
+  { shape: 'pile-4' },
 )
 const readingAtom = atom(
   { plugin: 'seasonal-theme', key: 'reading' } as const,
@@ -28,7 +28,7 @@ const readingAtom = atom(
 const applyReading = async ($: EngineInterface, change: (reading: Reading) => Reading) => {
   const before = await read($, readingAtom)
   const after = await update($, readingAtom, change)
-  const next = settle(await read($, pileAtom), before, after, Math.floor(await $.clock.now()) % 100_000)
+  const next = settle(await read($, pileAtom), before, after, Math.floor(await $.clock.now()))
 
   if (next !== null) {
     await update($, pileAtom, () => next)

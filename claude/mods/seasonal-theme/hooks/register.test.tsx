@@ -23,11 +23,15 @@ type On = Parameters<TestBody>[1]
 // Stands in for the engine beneath the plugin.
 const engine = (
   on: On,
-  { platform = 'wsl', date = new Date(2026, 10, 25, 12) }: { platform?: SessionInfo['platform']; date?: Date } = {},
+  {
+    platform = 'wsl',
+    date = new Date(2026, 10, 25, 12),
+    now = () => date.getTime(),
+  }: { platform?: SessionInfo['platform']; date?: Date; now?: () => number } = {},
 ) => {
   const looks: ThemeSetArgs[] = []
   const statuses: (string | undefined)[] = []
-  on('clock.now', () => ({ value: date.getTime() }))
+  on('clock.now', () => ({ value: now() }))
   on('session.info', () => ({ value: { transcriptPath: '/t', platform } }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [] } }))
   on('theme.set', (_, e) => {
@@ -62,6 +66,13 @@ const drawnScene = async ($: Engine, plugin: string = PLUGIN) => {
   const svg = await drawn($, plugin)
 
   return svg === undefined ? undefined : String(svg.props.source)
+}
+
+// The turkey's visit loop as drawn: its length and its start, in seconds.
+const visitLoop = (svg: string | undefined) => {
+  const [, seconds = 'NaN', delay = 'NaN'] = svg?.match(/animation:visit ([\d.]+)s linear (-?[\d.]+)s infinite/) ?? []
+
+  return { seconds: Number(seconds), delay: Number(delay) }
 }
 
 describe('seasonal-theme', () => {
@@ -151,16 +162,30 @@ describe('seasonal-theme', () => {
 
   test('a pile an older version stored is replaced, not misread', async ($, on) => {
     engine(on)
-    // What the code before the sign stored: no percent, under the old tag.
+    // What the code before the clock-tied visits stored: a seed, not a time, under the old tag.
+    const old = { level: 3, fill: 80, percent: 80, from: 3, fromFill: 80, transition: 'none', seed: 1 }
     on('state.get', (_, e, next) =>
-      e.key === 'pile'
-        ? { value: { value: { shape: 'pile-2', value: { level: 3, fill: 80, from: 3, fromFill: 80, transition: 'none', seed: 1 } }, version: 1 } }
-        : next(e),
+      e.key === 'pile' ? { value: { value: { shape: 'pile-3', value: old }, version: 1 } } : next(e),
     )
 
     const svg = await drawnScene($)
     expect(svg).toContain('data-fill="0"')
     expect(svg).not.toContain('undefined')
+    expect(svg).not.toContain('NaN')
+  })
+
+  test('the turkey keeps to the clock from one reading to the next', async ($, on) => {
+    let time = new Date(2026, 10, 25, 12).getTime()
+    engine(on, { now: () => time })
+    await start($)
+    await $.session.measure(reading(31))
+    const first = visitLoop(await drawnScene($))
+    time += 150_000
+    await $.session.measure(reading(37))
+    const second = visitLoop(await drawnScene($))
+    const moved = (((first.delay - second.delay) % first.seconds) + first.seconds) % first.seconds
+
+    expect(Math.abs(moved - 150)).toBeLessThan(0.2)
   })
 
   test('crossing 90% dives, and a compact scatters the pile', async ($, on) => {

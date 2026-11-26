@@ -9,7 +9,7 @@ const at = (percent: number | null): PileView => {
   const level = levelFor(percent)
   const fill = fillFor(percent)
 
-  return { level, fill, percent: percent === null ? null : Math.round(percent), from: level, fromFill: fill, transition: 'none', seed: 1 }
+  return { level, fill, percent: percent === null ? null : Math.round(percent), from: level, fromFill: fill, transition: 'none', time: 1 }
 }
 const live = (percent: number | null): Reading => ({ live: percent, preview: null })
 
@@ -54,19 +54,19 @@ describe('settle', () => {
 
   test('a new percent within a step redraws for the sign, with no move', () => {
     expect(settle(at(31), live(31), live(34), 7)).toEqual({
-      level: 1, fill: 30, percent: 34, from: 1, fromFill: 30, transition: 'none', seed: 7,
+      level: 1, fill: 30, percent: 34, from: 1, fromFill: 30, transition: 'none', time: 7,
     })
   })
 
   test('each 5% step grows the pile, within a level too', () => {
     expect(settle(at(31), live(31), live(36), 7)).toEqual({
-      level: 1, fill: 35, percent: 36, from: 1, fromFill: 30, transition: 'grow', seed: 7,
+      level: 1, fill: 35, percent: 36, from: 1, fromFill: 30, transition: 'grow', time: 7,
     })
   })
 
   test('jumping several steps grows from where it was', () => {
     expect(settle(at(null), live(null), live(80), 7)).toEqual({
-      level: 3, fill: 80, percent: 80, from: 0, fromFill: 0, transition: 'grow', seed: 7,
+      level: 3, fill: 80, percent: 80, from: 0, fromFill: 0, transition: 'grow', time: 7,
     })
   })
 
@@ -81,7 +81,7 @@ describe('settle', () => {
 
   test('a big drop, as after a compact, scatters', () => {
     expect(settle(at(93), live(93), live(12), 7)).toEqual({
-      level: 0, fill: 10, percent: 12, from: 4, fromFill: 90, transition: 'scatter', seed: 7,
+      level: 0, fill: 10, percent: 12, from: 4, fromFill: 90, transition: 'scatter', time: 7,
     })
   })
 
@@ -98,7 +98,7 @@ describe('settle', () => {
     expect(previewed?.fill).toBe(95)
 
     const back = settle(at(95), { live: 30, preview: 95 }, live(30), 8)
-    expect(back).toEqual({ level: 1, fill: 30, percent: 30, from: 4, fromFill: 95, transition: 'scatter', seed: 8 })
+    expect(back).toEqual({ level: 1, fill: 30, percent: 30, from: 4, fromFill: 95, transition: 'scatter', time: 8 })
   })
 })
 

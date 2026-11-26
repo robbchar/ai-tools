@@ -14,7 +14,6 @@ const TOWER_MAX = 880
 const PECK_X = 585
 const SIGN_X = 668
 const OFFSTAGE_X = 1120
-const VISIT_SECONDS = 120
 const PIECE_SCALE = 1.65
 const TEETER_FROM = 50
 const EDGE_GAP = 22
@@ -410,35 +409,86 @@ const strideKeyframes = (name: string, walks: readonly [number, number][], step:
   return `@keyframes ${name}{${stops.join('')}}`
 }
 
-const peckKeyframes = (name: string, pecks: readonly number[]) => {
+const peckKeyframes = (name: string, pecks: readonly number[], pct: (at: number) => number) => {
   const stops = pecks.flatMap(at => [
-    `${at}%{transform:none}`,
-    `${r((at + 0.2) * 100) / 100}%{transform:rotate(-38deg)}`,
-    `${r((at + 0.5) * 100) / 100}%{transform:none}`,
+    `${pct(at)}%{transform:none}`,
+    `${pct(at + 0.24)}%{transform:rotate(-38deg)}`,
+    `${pct(at + 0.6)}%{transform:none}`,
   ])
 
   return `@keyframes ${name}{0%{transform:none}${stops.join('')}100%{transform:none}}`
 }
 
-// Now and then the wanderer walks in from the right, pecks about, and walks off.
-const visitMarkup = (art: SceneArt, delay: number, parts: Parts): string => {
-  const away = OFFSTAGE_X - PECK_X
-  const step = (0.4 / VISIT_SECONDS) * 100
-  const loop = `${VISIT_SECONDS}s linear ${r(delay)}s infinite`
-  parts.css.push(
-    `.visit{transform:translateX(${away}px);animation:visit ${loop}}`,
-    `@keyframes visit{0%{transform:translateX(${away}px)}4.5%,9.4%{transform:none}14%,100%{transform:translateX(${away}px)}}`,
-    `.visit .turn{animation:visitturn ${loop}}`,
-    '@keyframes visitturn{0%,9.1%{transform:none}9.4%,99.9%{transform:scaleX(-1)}100%{transform:none}}',
-    `.visit .head{animation:visitpeck ${loop}}`,
-    peckKeyframes('visitpeck', [5.6, 6.6, 7.1, 8.2]),
-    `.visit .leg-a{animation:visitleg ${loop}}`,
-    `.visit .leg-b{animation:visitleg2 ${loop}}`,
-    strideKeyframes('visitleg', [[0, 4.5], [9.4, 14]], step, 20),
-    strideKeyframes('visitleg2', [[0, 4.5], [9.4, 14]], step, -20),
-  )
+// One visit, in seconds from its start: walk in, peck about, turn round, walk off.
+const VISIT = { arrive: 5.4, turn: 10.9, leave: 11.3, gone: 16.8, pecks: [6.7, 7.9, 8.5, 9.8] } as const
+const STRIDE = 0.4
+const VISITS_PER_LOOP = 5
+// Whole seconds off stage between visits, and at least this long after popping out.
+const GAP_MIN = 30
+const GAP_MAX = 120
+const POPOUT_HOLD = 40
 
-  return `<g transform="translate(${PECK_X} ${GROUND_Y})"><g class="visit"><g class="turn">${art.wanderer.body}</g></g></g>`
+// Visits at uneven gaps; the loop repeats, the same in every session.
+const visitSchedule = (): { starts: readonly number[]; seconds: number } => {
+  const starts: number[] = []
+  let at = 0
+  for (let k = 0; k < VISITS_PER_LOOP; k++) {
+    starts.push(at)
+    at += VISIT.gone + Math.round(GAP_MIN + noise(k * 19 + 11) * (GAP_MAX - GAP_MIN))
+  }
+
+  return { starts, seconds: r(at) }
+}
+
+const SCHEDULE = visitSchedule()
+
+// Where the loop stands when a view is drawn: on the clock, so a redraw carries on the same visit.
+const visitPhase = (time: number) => (time / 1000) % SCHEDULE.seconds
+
+// How long the visitor stays away after popping out; a visit still under way then is skipped whole.
+const holdAfterPopout = (phase: number) => {
+  const then = (phase + POPOUT_HOLD) % SCHEDULE.seconds
+  const into = then - (SCHEDULE.starts.findLast(start => start <= then) ?? 0)
+
+  return into < VISIT.gone ? POPOUT_HOLD + VISIT.gone - into : POPOUT_HOLD
+}
+
+// Now and then the wanderer walks in from the right, pecks about, and walks off.
+const visitMarkup = (art: SceneArt, phase: number, hold: number, parts: Parts): string => {
+  const { starts, seconds } = SCHEDULE
+  const pct = (at: number) => Math.round((at / seconds) * 100_000) / 1000
+  const away = `transform:translateX(${OFFSTAGE_X - PECK_X}px)`
+  const loop = (ahead = 0) => `${seconds}s linear ${r(-phase - ahead)}s infinite`
+  const walk = starts.map(s =>
+    `${pct(s)}%{${away}}${pct(s + VISIT.arrive)}%,${pct(s + VISIT.leave)}%{transform:none}${pct(s + VISIT.gone)}%{${away}}`)
+  const turn = starts.map(s =>
+    `${pct(s + VISIT.turn)}%{transform:none}${pct(s + VISIT.leave)}%,${pct(s + VISIT.gone)}%{transform:scaleX(-1)}` +
+    `${pct(s + VISIT.gone + 0.1)}%{transform:none}`)
+  const walks = starts.flatMap((s): [number, number][] => [
+    [pct(s), pct(s + VISIT.arrive)],
+    [pct(s + VISIT.leave), pct(s + VISIT.gone)],
+  ])
+  parts.css.push(
+    `.visit{${away};animation:visit ${loop()}}`,
+    `@keyframes visit{${walk.join('')}100%{${away}}}`,
+    `.visit .turn{animation:visitturn ${loop()}}`,
+    `@keyframes visitturn{0%{transform:none}${turn.join('')}100%{transform:none}}`,
+    `.visit .head{animation:visitpeck ${loop()}}`,
+    peckKeyframes('visitpeck', starts.flatMap(s => VISIT.pecks.map(at => s + at)), pct),
+    // One set of strides: leg-b runs a stride ahead, so the legs swing opposite ways.
+    `.visit .leg-a{animation:visitleg ${loop()}}`,
+    `.visit .leg-b{animation:visitleg ${loop(STRIDE)}}`,
+    strideKeyframes('visitleg', walks, (STRIDE / seconds) * 100, 20),
+  )
+  const body = `<g class="visit"><g class="turn">${art.wanderer.body}</g></g>`
+
+  if (hold === 0) {
+    return `<g transform="translate(${PECK_X} ${GROUND_Y})">${body}</g>`
+  }
+
+  parts.css.push(`.hold{animation:hold ${Math.ceil(hold * 10) / 10}s step-end both}`, '@keyframes hold{from{opacity:0}to{opacity:1}}')
+
+  return `<g transform="translate(${PECK_X} ${GROUND_Y})"><g class="hold">${body}</g></g>`
 }
 
 // Reaching the wrap-up level: the wanderer crouches, launches up the tower, and dives in at the top.
@@ -487,7 +537,7 @@ type Lane = { name: string; salt: number; starts: readonly Point[]; landAt: (x: 
 // Pieces that drift down now and then from their lane's starts; more often from 50%.
 const driftMarkup = (piece: PieceArt, colors: readonly string[], view: PileView, lane: Lane, parts: Parts) =>
   lane.starts.map((start, i) => {
-    const n = view.seed + i * 13 + lane.salt * 101
+    const n = (view.time % 100_000) + i * 13 + lane.salt * 101
     const dx = r((noise(n + 1) - 0.5) * 120)
     const drop = r(lane.landAt(start.x + dx) - start.y)
     const seconds = r((view.level >= 2 ? 16 : 28) + noise(n + 2) * 12)
@@ -677,10 +727,10 @@ export const renderScene = (art: SceneArt, view: PileView): string => {
   const towerPart = towerMarkup(art, view, parts)
   const collapse = isScatter ? collapseMarkup(art, view) : ''
   const isPopout = isScatter && view.from === 4
-  const visitDelay = isPopout ? 40 : -noise(view.seed) * VISIT_SECONDS
+  const phase = visitPhase(view.time)
   const wanderer = view.level === 4
     ? (view.transition === 'dive' ? diveMarkup(art, view, parts) : '')
-    : visitMarkup(art, visitDelay, parts) + (isPopout ? popoutMarkup(art, view, parts) : '')
+    : visitMarkup(art, phase, isPopout ? holdAfterPopout(phase) : 0, parts) + (isPopout ? popoutMarkup(art, view, parts) : '')
   const flights = isGust ? gustMarkup(art, view, parts) : isScatter ? swirlMarkup(art, view, parts) : ''
   const rightLane = driftMarkup(drifter.piece, drifter.colors, view, right, parts)
   const leftLane = driftMarkup(drifter.piece, drifter.colors, view, left, parts)
