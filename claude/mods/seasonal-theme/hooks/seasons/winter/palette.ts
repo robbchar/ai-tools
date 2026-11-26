@@ -37,8 +37,8 @@ const pair = (light: string, dark: string): ModeColor => ({ light, dark })
 export const COLORS = {
   ground: pair('#eef2f5', '#11161d'),
   field: pair('#e8edf1', '#27313d'),
-  snow: pair('#fbfdff', '#8e9bab'),
-  snowShade: pair('#cfdbe6', '#6f7c8c'),
+  snow: pair('#fbfdff', '#5d6878'),
+  snowShade: pair('#cfdbe6', '#4a5563'),
   tree: pair('#4d7062', '#2f4b43'),
   treeDark: pair('#3e5d51', '#263d37'),
   trunk: pair('#6b5446', '#4a3a31'),
