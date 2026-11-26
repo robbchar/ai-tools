@@ -29,8 +29,19 @@ export const houseMarkup = (view: PileView, parts: Parts): string => {
 
     return `<line class="frame" x1="${x}" y1="${r(winBase + 4)}" x2="${x}" y2="${r(winBase + 26)}" stroke-width="3"/>`
   })
-  const roofSnow = (side: 1 | -1) =>
-    `<polygon points="${pts([[hx, apex - snow], [hx + side * (ro + 4), GROUND_Y - snow * 0.6], [hx + side * ro, GROUND_Y], [hx, apex]])}"/>`
+  const roofSnow = (side: 1 | -1, depth = snow, cls = '') =>
+    `<polygon${cls} points="${pts([[hx, apex - depth], [hx + side * (ro + 4), GROUND_Y - depth * 0.6], [hx + side * ro, GROUND_Y], [hx, apex]])}"/>`
+  const isCompact = view.transition === 'scatter' && view.fromFill > view.fill
+  if (isCompact) {
+    parts.css.push(
+      '.slide{opacity:0}.slide-r{animation:slide-r 1.6s ease-in .2s both}.slide-l{animation:slide-l 1.6s ease-in .2s both}',
+      '@keyframes slide-r{0%{transform:none;opacity:1}100%{transform:translate(80px,160px);opacity:0}}',
+      '@keyframes slide-l{0%{transform:none;opacity:1}100%{transform:translate(-80px,160px);opacity:0}}',
+    )
+  }
+  const sliding = isCompact
+    ? `<g class="roof-snow">${roofSnow(1, roofSnowAt(view.fromFill), ' class="slide slide-r"')}${roofSnow(-1, roofSnowAt(view.fromFill), ' class="slide slide-l"')}</g>`
+    : ''
   const smoke = [0, 1, 2].map(i => `<circle class="smoke" cx="${r(chX)}" cy="${r(chTop - 14)}" r="14" style="animation-delay:-${r(i * 2.2)}s"/>`)
 
   parts.css.push(
@@ -53,6 +64,7 @@ export const houseMarkup = (view: PileView, parts: Parts): string => {
     `<rect class="glass frame" x="${r(hx - half * 0.62)}" y="${GROUND_Y - 92}" width="40" height="44" stroke-width="4"/>` +
     `<rect class="glass frame" x="${r(hx + half * 0.62 - 40)}" y="${GROUND_Y - 92}" width="40" height="44" stroke-width="4"/>` +
     `<g class="roof-snow" data-depth="${snow}">${roofSnow(1)}${roofSnow(-1)}</g>` +
+    sliding +
     `<ellipse class="chimney-cap" cx="${r(chX)}" cy="${r(chTop)}" rx="${r(18 + snow * 0.15)}" ry="${r(3 + snow * 0.35)}"/>` +
     smoke.join('') +
     '</g>'

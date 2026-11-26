@@ -3,6 +3,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { PileView, Transition } from '../../../types'
 import { fillFor, levelFor } from '../../pile'
 
+import { snowTopAt } from './geometry'
 import { renderWinter } from './scene'
 
 const view = (percent: number | null, transition: Transition = 'none', fromPercent = percent ?? 0): PileView => ({
@@ -108,5 +109,72 @@ describe('modes and motion', () => {
     for (const cls of ['snow', 'snow-band', 'house', 'tree', 'sign', 'roof-snow', 'cap']) {
       expect(svg).not.toContain(`.${cls}{opacity:0`)
     }
+  })
+})
+
+describe('moves', () => {
+  test('a step up raises the snow from the old level', () => {
+    const svg = draw(35, 'grow', 30)
+
+    expect(svg).toContain('class="snow-band rise"')
+    expect(svg).toContain('@keyframes rise{from{transform:translateY(21.6px)}')
+  })
+
+  test('a jump of several steps rises the whole way in one go', () => {
+    expect(draw(40, 'grow', 10)).toContain(`@keyframes rise{from{transform:translateY(${Math.round((snowTopAt(10) - snowTopAt(40)) * 10) / 10}px)}`)
+  })
+
+  test('a small drop eases the snow down with no other fuss', () => {
+    const svg = draw(30, 'shrink', 35)
+
+    expect(svg).toContain('class="snow-band sink"')
+    expect(svg).not.toContain('class="slide')
+    expect(svg).not.toContain('class="blow')
+  })
+
+  test("a compact slides the roof's snow off and blows the tree and the sign clear", () => {
+    const svg = draw(10, 'scatter', 80)
+    const tree = svg.slice(svg.indexOf('class="tree"'), svg.indexOf(RIGHT_STAGE))
+    const sign = svg.slice(svg.indexOf(SIGN_STAGE))
+
+    expect(svg).toContain('class="snow-band sink"')
+    expect(svg).toContain('class="slide')
+    expect(tree).toContain('class="blow')
+    expect(sign).toContain('class="blow')
+  })
+
+  test("a settled scene doesn't move", () => {
+    const svg = draw(30)
+
+    for (const mark of [' rise"', ' sink"', 'class="slide', 'class="blow']) {
+      expect(svg).not.toContain(mark)
+    }
+  })
+
+  test('leaving snow is hidden when motion is off', () => {
+    const svg = draw(10, 'scatter', 80)
+
+    expect(svg).toContain('.slide{opacity:0')
+    expect(svg).toContain('.blow{opacity:0')
+  })
+})
+
+describe('moving snow', () => {
+  test('the snow still reaches the bottom of the window while it sinks', () => {
+    const svg = draw(0, 'scatter', 100)
+    const shift = Number(svg.match(/@keyframes sink\{from\{transform:translateY\(-([\d.]+)px\)/)?.[1])
+    const band = svg.match(/<g class="snow-band[^"]*"[^>]*><polygon class="snow" points="([^"]+)"/)?.[1] ?? ''
+    const bottom = Math.max(...band.split(' ').map(point => Number(point.split(',')[1])))
+
+    expect(shift).toBeGreaterThan(0)
+    expect(bottom - shift).toBeGreaterThan(1000)
+  })
+
+  test('snow blowing or sliding off things is still snow-colored', () => {
+    const svg = draw(10, 'scatter', 80)
+    const snowRule = svg.match(/([^{}]*)\{fill:#fbfdff\}/)?.[1] ?? ''
+
+    expect(snowRule.split(',')).toContain('.blow')
+    expect(snowRule.split(',')).toContain('.slide')
   })
 })

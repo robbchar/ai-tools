@@ -22,7 +22,7 @@ const RULES: readonly [string, string, ModeColor][] = [
   ['.far-1', 'fill', COLORS.farTree1],
   ['.far-2', 'fill', COLORS.farTree2],
   ['.far-3', 'fill', COLORS.farTree3],
-  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot', 'fill', COLORS.snow],
+  ['.snow,.drift,.cap,.far-cap,.roof-snow,.chimney-cap,.sign-snow,.knot,.blow,.slide', 'fill', COLORS.snow],
   ['.snow-shade', 'stroke', COLORS.snowShade],
   ['.tree', 'fill', COLORS.tree],
   ['.tree-dark', 'fill', COLORS.treeDark],
@@ -63,8 +63,8 @@ const baseCss = (): Parts => {
 // Winter: snow rising across the window, measured against an A-frame house.
 export const renderWinter = (view: PileView, _phase: number): string => {
   const parts = baseCss()
-  const left = treeMarkup(view) + treeDrift(view)
-  const right = houseMarkup(view, parts) + snowBand(view)
+  const left = treeMarkup(view, parts) + treeDrift(view)
+  const right = houseMarkup(view, parts) + snowBand(view, parts)
   const sign = signMarkup(view, parts)
   const plan = flakePlan(view)
   flakeCss(parts)
