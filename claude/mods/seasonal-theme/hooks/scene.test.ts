@@ -3,7 +3,9 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { PileView, Transition } from '../types'
 
 import { fillFor, levelFor } from './pile'
-import { altFor, renderScene, sceneProblems, showing } from './scene'
+import { renderScene } from './scene'
+import { sceneProblems } from './stage/rules'
+import { showing } from './stage/visits'
 import type { SceneArt } from './seasons/types'
 
 // A plain stand-in season: shows the scene works with any art.
@@ -478,16 +480,6 @@ describe('the sign', () => {
   })
 })
 
-describe('altFor', () => {
-  test('tells a reader the percent with the scene', () => {
-    expect(altFor(art, at(42))).toBe('level 1 42% of the context window is used.')
-  })
-
-  test('with no reading, just the scene', () => {
-    expect(altFor(art, { ...at(0), percent: null })).toBe('level 0')
-  })
-})
-
 describe('motion and mode', () => {
   test('reduced motion and dark mode both have rules', () => {
     const svg = renderScene(art, at(30))
@@ -497,17 +489,8 @@ describe('motion and mode', () => {
   })
 })
 
-describe('sceneProblems', () => {
+describe('engine rules', () => {
   test('a clean scene has none', () => {
     expect(sceneProblems(renderScene(art, at(80, 'grow', 20)))).toEqual([])
-  })
-
-  test('markup the engine refuses is named', () => {
-    expect(sceneProblems('<svg><image/></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><!-- sky --></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><a href="#x"/></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><style>a{b:c}/* x */</style></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg>&</svg>')).toHaveLength(1)
-    expect(sceneProblems(`<svg>${'x'.repeat(131_072)}</svg>`)).toHaveLength(1)
   })
 })

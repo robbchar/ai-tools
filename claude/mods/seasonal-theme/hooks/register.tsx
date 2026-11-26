@@ -7,7 +7,9 @@ import { describeScene, parseScene } from './command'
 import { badgeFor, statusLine } from './environment'
 import { makeColors } from './make-colors.js'
 import { settle } from './pile'
-import { altFor, renderScene, showing } from './scene'
+import { renderScene } from './scene'
+import { altFor } from './stage/frame'
+import { showing } from './stage/visits'
 import { parseChoice, pickScene } from './season'
 import type { SeasonChoice } from './season'
 import { AVAILABLE, seasonById } from './seasons'
@@ -148,6 +150,6 @@ export const register: Register = (on, options) => {
     visitAnchor = shown.anchor
     const { Svg } = $.ui.resolve(e)
 
-    return <Svg source={renderScene(season.art, shown.view, shown.phase)} alt={altFor(season.art, shown.view)} isInteractive />
+    return <Svg source={renderScene(season.art, shown.view, shown.phase)} alt={altFor(season.art.describe, shown.view)} isInteractive />
   })
 }

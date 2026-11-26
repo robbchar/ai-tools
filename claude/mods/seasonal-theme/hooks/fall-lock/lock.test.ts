@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { altFor, renderScene } from '../scene'
+import { renderScene } from '../scene'
+import { altFor } from '../stage/frame'
 import { fall } from '../seasons/fall'
 
 import { ALT_FILLS, FALL_CASES, hashOf, viewAt } from './cases'
@@ -14,9 +15,9 @@ describe('the fall lock', () => {
   })
 
   test("fall's alt text is unchanged", () => {
-    const changed = ALT_FILLS.filter(fill => hashOf(altFor(fall.art, viewAt(fill))) !== FALL_HASHES[`alt:${fill}`])
+    const changed = ALT_FILLS.filter(fill => hashOf(altFor(fall.art.describe, viewAt(fill))) !== FALL_HASHES[`alt:${fill}`])
 
     expect(changed).toEqual([])
-    expect(hashOf(altFor(fall.art, { ...viewAt(0), percent: null }))).toBe(FALL_HASHES['alt:none'])
+    expect(hashOf(altFor(fall.art.describe, { ...viewAt(0), percent: null }))).toBe(FALL_HASHES['alt:none'])
   })
 })

@@ -3,7 +3,8 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { Level, Transition } from '../../types'
 import { makeColors } from '../make-colors.js'
 import { settle } from '../pile'
-import { renderScene, sceneProblems } from '../scene'
+import { renderScene } from '../scene'
+import { sceneProblems } from '../stage/rules'
 
 import { SEASONS } from './index'
 
