@@ -10,7 +10,7 @@
       "title": "Season",
       "description": "auto picks the season by date; name one to pin it. Dates whose season has no art yet show fall.",
       "default": "auto",
-      "options": ["auto", "fall"]
+      "options": ["auto", "fall", "winter"]
     }
   }
 }

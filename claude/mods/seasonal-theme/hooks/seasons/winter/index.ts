@@ -1,6 +1,7 @@
 import type { Level } from '../../../types'
 import type { Season } from '../types'
 
+import { FOX_BODY } from './fox'
 import { winterPalette } from './palette'
 import { renderWinter } from './scene'
 
@@ -18,5 +19,5 @@ export const winter: Season = {
   palette: winterPalette,
   draw: renderWinter,
   describe: level => DESCRIPTIONS[level],
-  visitor: '',
+  visitor: FOX_BODY,
 }

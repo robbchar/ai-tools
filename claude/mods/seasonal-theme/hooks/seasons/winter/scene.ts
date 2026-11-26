@@ -34,6 +34,9 @@ const RULES: readonly [string, string, ModeColor][] = [
   ['.numerals,.caption', 'fill', COLORS.ink],
   ['.warm .numerals', 'fill', COLORS.warmInk],
   ['.rope', 'stroke', COLORS.rope],
+  ['.fox', 'fill', COLORS.fox],
+  ['.fox-dark', 'fill', COLORS.foxDark],
+  ['.fox-light', 'fill', COLORS.foxLight],
 ]
 
 const baseCss = (): Parts => {
