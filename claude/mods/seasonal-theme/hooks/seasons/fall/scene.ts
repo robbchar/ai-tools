@@ -1,10 +1,11 @@
-import type { Level, PileView } from '../types'
+import type { Level, PileView } from '../../../types'
 
-import type { Clump, PieceArt, SceneArt } from './seasons/types'
-import { frame } from './stage/frame'
-import { isWarm, modeRule, noise, pathOf, pick, r } from './stage/svg'
-import type { Parts, Point } from './stage/svg'
-import { holdAfterPopout, visitMarkup } from './stage/visits'
+import { frame } from '../../stage/frame'
+import { isWarm, modeRule, noise, pathOf, pick, r } from '../../stage/svg'
+import type { Parts, Point } from '../../stage/svg'
+import { holdAfterPopout, visitMarkup } from '../../stage/visits'
+
+import type { Clump, FallArt, PieceArt } from './types'
 
 // Two 1000-unit stages pinned to the window's bottom corners, scaled to its shorter side:
 // the tower on the right, the season's tree and scenery on the left. A stage unit is
@@ -107,15 +108,15 @@ const faceSpots = (tower: Tower): Spot[] => {
   })
 }
 
-const towerColors = (art: SceneArt, level: Level) => (isWarm(level) ? art.pile.warmColors : art.pile.colors)
+const towerColors = (art: FallArt, level: Level) => (isWarm(level) ? art.pile.warmColors : art.pile.colors)
 
 const ratio = (from: number, to: number) => Math.round((from / to) * 100) / 100
 
-const peekMarkup = (art: SceneArt, tower: Tower, isRising: boolean) =>
+const peekMarkup = (art: FallArt, tower: Tower, isRising: boolean) =>
   `<g transform="translate(${PILE_X + 4} ${r(GROUND_Y - tower.height + 16)})"><g class="peek">` +
   `<g${isRising ? ' class="rise"' : ''}><g class="wiggle">${art.wanderer.peek}</g></g></g></g>`
 
-const towerMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const towerMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const tower = towerOf(view.fill)
 
   if (tower.height === 0) {
@@ -147,7 +148,7 @@ const towerMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact: the old tower's outline sinks and fades where it stood.
-const collapseMarkup = (art: SceneArt, view: PileView): string => {
+const collapseMarkup = (art: FallArt, view: PileView): string => {
   const tower = towerOf(view.fromFill)
 
   if (tower.height === 0) {
@@ -161,7 +162,7 @@ const collapseMarkup = (art: SceneArt, view: PileView): string => {
   return `<g class="collapse"><path class="mound" d="${pathOf(outline)}"/>${bits.join('')}</g>`
 }
 
-const litterMarkup = (art: SceneArt, view: PileView): string => {
+const litterMarkup = (art: FallArt, view: PileView): string => {
   const reach = view.fill === 0 ? 0 : HALF_WIDTH
   const colors = towerColors(art, view.level)
 
@@ -207,7 +208,7 @@ const blobPath = (clump: Clump, radius: number, salt: number): string => {
   return `M${mid(points.at(-1) ?? clump, points[0] ?? clump)}${curves.join('')}Z`
 }
 
-const clumpMarkup = (art: SceneArt, clump: Clump, i: number, radius: number, extra: string, delay: number): string => {
+const clumpMarkup = (art: FallArt, clump: Clump, i: number, radius: number, extra: string, delay: number): string => {
   const colors = art.scenery.tree.colors
   const count = Math.max(4, Math.round((2 * Math.PI * radius) / 58))
   const leaves = Array.from({ length: count }, (_, j) => {
@@ -228,7 +229,7 @@ const clumpMarkup = (art: SceneArt, clump: Clump, i: number, radius: number, ext
 
 type CrownState = { visible: Clump[]; leaving: Clump[] }
 
-const crownOf = (art: SceneArt, fill: number, fromFill: number): CrownState & { marks: number[] } => {
+const crownOf = (art: FallArt, fill: number, fromFill: number): CrownState & { marks: number[] } => {
   const clumps = art.scenery.tree.clumps
   const marks = marksOf(clumps.length)
   const now = fullnessOf(fill)
@@ -241,7 +242,7 @@ const crownOf = (art: SceneArt, fill: number, fromFill: number): CrownState & { 
   }
 }
 
-const treeMarkup = (art: SceneArt, view: PileView): string => {
+const treeMarkup = (art: FallArt, view: PileView): string => {
   const tree = art.scenery.tree
   const now = fullnessOf(view.fill)
   const before = fullnessOf(view.fromFill)
@@ -291,7 +292,7 @@ const between = (a: StagePoint, b: StagePoint, t: number, lift: number, sway: nu
 type Flight = { name: string; from: StagePoint; to: StagePoint; stops: readonly [number, number, number, number][]; seconds: number; delay: number }
 
 // Each stop is [percent, t along the way, lift in vmin, sideways sway in vmin].
-const flightMarkup = (art: SceneArt, flight: Flight, i: number, parts: Parts): string => {
+const flightMarkup = (art: FallArt, flight: Flight, i: number, parts: Parts): string => {
   const spin = 300 + noise(i + 61) * 500
   const frames = flight.stops.map(([at, t, lift, sway]) => {
     const fade = at === 0 || at === 100 ? 0 : 0.95
@@ -307,7 +308,7 @@ const flightMarkup = (art: SceneArt, flight: Flight, i: number, parts: Parts): s
 }
 
 // Each step up: a gust lifts leaves off the tree and carries them across to the pile.
-const gustMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const gustMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const crown = crownOf(art, view.fill, view.fromFill)
   const sources = crown.leaving.length > 0 ? crown.leaving : crown.visible.length > 0 ? crown.visible : art.scenery.tree.clumps
   const topOfPile = GROUND_Y - towerOf(view.fill).height + 20
@@ -330,7 +331,7 @@ const gustMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact: leaves swirl up off the old pile and back into the tree.
-const swirlMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const swirlMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const old = towerOf(view.fromFill)
   const spots = old.height === 0 ? [] : edgeSpots(outlineOf(old), 0)
   const crown = crownOf(art, view.fill, view.fromFill)
@@ -368,7 +369,7 @@ const peckKeyframes = (name: string, pecks: readonly number[], pct: (at: number)
 }
 
 // Reaching the wrap-up level: the wanderer crouches, launches up the tower, and dives in at the top.
-const diveMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const diveMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const top = r(towerOf(view.fill).height)
   parts.css.push(
     '.dive{opacity:0;animation:dive 7s linear both}',
@@ -388,7 +389,7 @@ const diveMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact or clear: the wanderer pops out of the top and floats down as the tower goes.
-const popoutMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const popoutMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const top = r(towerOf(view.fromFill).height)
   parts.css.push(
     '.popout{opacity:0;animation:popout 10s linear both}',
@@ -429,7 +430,7 @@ const driftMarkup = (piece: PieceArt, colors: readonly string[], view: PileView,
   }).join('')
 
 // Leaves on the ground, a few more with every step; each keeps its place as more arrive.
-const groundMarkup = (art: SceneArt, view: PileView, side: Side): string => {
+const groundMarkup = (art: FallArt, view: PileView, side: Side): string => {
   const count = 3 + Math.round((9 * view.fill) / 100)
   const [from, span, salt] = side === 'left' ? [250, 470, 71] : [360, 620, 91]
 
@@ -451,7 +452,7 @@ const farStep = (fill: number) => (fill >= 90 ? 3 : fill >= 60 ? 2 : fill >= 30 
 const farFullness = (fill: number) => [1, 0.66, 0.33, 0][farStep(fill)] ?? 0
 
 // A few tiny leaves falling from a far cluster, in its 120 by 100 box.
-const farDrops = (art: SceneArt, cluster: number): string =>
+const farDrops = (art: FallArt, cluster: number): string =>
   [0, 1, 2]
     .map(k => {
       const x = 20 + noise(cluster * 7 + k) * 80
@@ -464,7 +465,7 @@ const farDrops = (art: SceneArt, cluster: number): string =>
     .join('')
 
 // A field across the back of the window, and clusters of far trees standing on it.
-const distanceMarkup = (art: SceneArt, view: PileView): string => {
+const distanceMarkup = (art: FallArt, view: PileView): string => {
   const fullness = farFullness(view.fill)
   const before = farFullness(view.fromFill)
   const isDrop = (view.transition === 'grow' || view.transition === 'dive') && fullness < before
@@ -492,7 +493,7 @@ const STUCK: readonly [number, number, number][] = [
 ]
 
 // A wooden sign on a post beside the tower, showing the context percent.
-const signMarkup = (art: SceneArt, view: PileView): string => {
+const signMarkup = (art: FallArt, view: PileView): string => {
   const text = view.percent === null ? '—' : `${view.percent}%`
   const stuck = STUCK.slice(0, farStep(view.fill) * 2).map(([x, y, turn], i) =>
     placed({ x: SIGN_X + x, y: 886 + y, turn, i }, `<g class="stuck">${art.pile.piece(pick(art.drifter.colors, i + 2) ?? '', i)}</g>`, 1.1),
@@ -511,7 +512,7 @@ const signMarkup = (art: SceneArt, view: PileView): string => {
 }
 
 // What a reader who can't see the backdrop is told: the scene, then the percent.
-const baseCss = (art: SceneArt, level: Level): Parts => {
+const baseCss = (art: FallArt, level: Level): Parts => {
   const ground = modeRule('.ground', 'fill', art.ground)
   const mound = modeRule('.mound', 'fill', isWarm(level) ? art.pile.warmMound : art.pile.mound)
   const field = modeRule('.field', 'fill', art.distance.field)
@@ -572,7 +573,7 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
 }
 
 // `phase`: seconds into the turkey's visit loop as this drawing starts.
-export const renderScene = (art: SceneArt, view: PileView, phase = 0): string => {
+export const renderFall = (art: FallArt, view: PileView, phase = 0): string => {
   const parts = baseCss(art, view.level)
   const tower = towerOf(view.fill)
   const crown = crownOf(art, view.fill, view.fromFill)

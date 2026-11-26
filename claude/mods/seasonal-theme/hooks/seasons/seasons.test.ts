@@ -3,7 +3,6 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { Level, Transition } from '../../types'
 import { makeColors } from '../make-colors.js'
 import { settle } from '../pile'
-import { renderScene } from '../scene'
 import { sceneProblems } from '../stage/rules'
 
 import { SEASONS } from './index'
@@ -25,7 +24,7 @@ for (const season of SEASONS) {
         for (const [transition, fromFill] of MOVES) {
           const view = { level: levelAt(fill), fill, percent: fill, from: levelAt(fromFill), fromFill, transition, time: 12345 }
 
-          expect(sceneProblems(renderScene(season.art, view))).toEqual([])
+          expect(sceneProblems(season.draw(view, 0))).toEqual([])
         }
       }
     })
@@ -37,7 +36,7 @@ for (const season of SEASONS) {
           const next = settle(view, { live: from, preview: null }, { live: to, preview: null }, 12345)
 
           if (next !== null) {
-            expect(sceneProblems(renderScene(season.art, next))).toEqual([])
+            expect(sceneProblems(season.draw(next, 0))).toEqual([])
           }
         }
       }
@@ -45,7 +44,7 @@ for (const season of SEASONS) {
 
     test('the parts that move carry no transform of their own', () => {
       for (const part of ['head', 'leg-a', 'leg-b']) {
-        const tag = season.art.wanderer.body.match(new RegExp(`<g class="${part}"[^>]*>`))?.[0]
+        const tag = season.visitor.match(new RegExp(`<g class="${part}"[^>]*>`))?.[0]
 
         expect(tag).toBe(`<g class="${part}">`)
       }

@@ -1,7 +1,7 @@
 import { fall } from './fall'
 import type { Season, SeasonId } from './types'
 
-// Add a season here, and to the `season` options in plugin.json.
+// Add a season (its folder's `Season`) here, and to the `season` options in plugin.json.
 export const SEASONS: readonly Season[] = [fall]
 
 export const AVAILABLE: readonly SeasonId[] = SEASONS.map(season => season.id)
