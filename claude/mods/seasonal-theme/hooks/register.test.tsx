@@ -5,8 +5,8 @@ import type { SessionInfo, ThemeSetArgs } from 'claude-code'
 const PLUGIN = 'seasonal-theme'
 const BACKDROP = { scene: 'fall', plugin: PLUGIN, glass: false } as const
 
-const leaves = (args: string) => ({
-  command: 'leaves',
+const scene = (args: string) => ({
+  command: 'scene',
   args,
   origin: { kind: 'composer' as const },
   presentation: { isFullscreen: false, columns: 120 },
@@ -44,7 +44,7 @@ const engine = (
 
     return { value: undefined }
   })
-  on('command.register', () => ({ value: { command: 'leaves' } }))
+  on('command.register', () => ({ value: { command: 'scene' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
 
@@ -114,11 +114,11 @@ describe('seasonal-theme', () => {
     expect(statuses.at(-1)).toBe('WSL · 42% context')
   })
 
-  test('a /leaves preview shows in the status line as a preview', async ($, on) => {
+  test('a /scene percent preview shows in the status line as a preview', async ($, on) => {
     const { statuses } = engine(on, { platform: 'windows' })
     await start($)
     await $.session.measure(reading(30))
-    await $.command.run(leaves('95'))
+    await $.command.run(scene('95'))
 
     expect(statuses.at(-1)).toBe('WIN · 95% context (preview)')
   })
@@ -243,35 +243,71 @@ describe('seasonal-theme', () => {
     expect(after).toContain('class="popout"')
   })
 
-  test('/leaves previews a fill, and /leaves off goes back to live', async ($, on) => {
+  test('/scene previews a fill, and /scene off goes back to live', async ($, on) => {
     engine(on)
     await start($)
     await $.session.measure(reading(30))
 
-    const previewed = await $.command.run(leaves('95'))
-    expect(previewed.text).toBe('Previewing 95%: wrap-up (time to compact). Live is 30%; /leaves off returns to it.')
+    const previewed = await $.command.run(scene('95'))
+    expect(previewed.text).toBe(
+      'Scene: fall, by date.\nContext: 95% (preview; live is 30%), wrap-up (time to compact).\n/scene off ends the preview.',
+    )
     expect(await drawnScene($)).toContain('data-level="4"')
 
-    const back = await $.command.run(leaves('off'))
-    expect(back.text).toBe('Context 30% (live): small pile.')
+    const back = await $.command.run(scene('off'))
+    expect(back.text).toBe('Scene: fall, by date.\nContext: 30% (live), a small pile.')
     expect(await drawnScene($)).toContain('data-level="1"')
+  })
+
+  test('/scene with a name previews that scene, past a reload, and /scene off ends it', async ($, on) => {
+    const { looks } = engine(on)
+    await start($)
+
+    const previewed = await $.command.run(scene('fall'))
+    expect(previewed.text).toBe('Scene: fall (preview). Otherwise fall, by date.\nContext: no reading yet.\n/scene off ends the preview.')
+    // Already showing fall, so the look isn't set again.
+    expect(looks.length).toBe(1)
+
+    await start($)
+    expect((await $.command.run(scene(''))).text).toBe(
+      'Scene: fall (preview). Otherwise fall, by date.\nContext: no reading yet.\n/scene off ends the preview.',
+    )
+
+    expect((await $.command.run(scene('off'))).text).toBe('Scene: fall, by date.\nContext: no reading yet.')
+  })
+
+  test('a name alone leaves a percent preview standing, and a percent alone leaves the scene', async ($, on) => {
+    engine(on)
+    await start($)
+    await $.command.run(scene('60'))
+    const named = await $.command.run(scene('fall'))
+    expect(named.text).toBe(
+      'Scene: fall (preview). Otherwise fall, by date.\nContext: 60% (preview; no live reading yet), a respectable pile.\n/scene off ends the preview.',
+    )
+
+    const both = await $.command.run(scene('40'))
+    expect(both.text).toBe(
+      'Scene: fall (preview). Otherwise fall, by date.\nContext: 40% (preview; no live reading yet), a small pile.\n/scene off ends the preview.',
+    )
   })
 
   test('a live reading under a preview does not move the pile', async ($, on) => {
     engine(on)
     await start($)
-    await $.command.run(leaves('60'))
+    await $.command.run(scene('60'))
     await $.session.measure(reading(10))
 
     expect(await drawnScene($)).toContain('data-level="2"')
   })
 
-  test('/leaves refuses what it cannot read', async ($, on) => {
+  test('/scene refuses what it cannot read, and changes nothing', async ($, on) => {
     engine(on)
     await start($)
+    await $.session.measure(reading(30))
 
-    const out = await $.command.run(leaves('lots'))
-    expect(out.text).toBe('"lots" isn\'t a percentage from 0 to 100, or "off".')
+    expect((await $.command.run(scene('lots'))).text).toBe('There\'s no "lots" scene yet. Scenes: fall.')
+    expect((await $.command.run(scene('fall 120'))).text).toBe('"120" isn\'t a percentage from 0 to 100.')
+    expect((await $.command.run(scene(''))).text).toBe('Scene: fall, by date.\nContext: 30% (live), a small pile.')
   })
 
   test("another plugin's backdrop is left alone", async ($, on) => {

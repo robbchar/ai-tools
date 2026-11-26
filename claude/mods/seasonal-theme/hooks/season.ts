@@ -26,3 +26,25 @@ export const pickSeason = (
 
   return available.includes(wanted) ? wanted : FALLBACK_SEASON
 }
+
+// The scene a session shows: a /scene preview, else what the settings or the date ask for,
+// with fall standing in where that has no art yet.
+export type ScenePick = { id: SeasonId; base: SeasonId; wanted: SeasonId; isPinned: boolean; isPreview: boolean }
+
+export const pickScene = (
+  choice: SeasonChoice,
+  date: Date,
+  available: readonly SeasonId[],
+  preview: string | null,
+): ScenePick => {
+  const base = pickSeason(choice, date, available)
+  const previewed = available.find(id => id === preview)
+
+  return {
+    id: previewed ?? base,
+    base,
+    wanted: choice === 'auto' ? seasonForDate(date) : choice,
+    isPinned: choice !== 'auto',
+    isPreview: previewed !== undefined,
+  }
+}

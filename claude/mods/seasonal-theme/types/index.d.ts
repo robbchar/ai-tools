@@ -16,11 +16,14 @@ export type PileView = {
   time: number
 }
 
-// Context fill as last measured, and a /leaves preview that stands in for it.
+// Context fill as last measured, and a /scene preview that stands in for it.
 export type Reading = { live: number | null; preview: number | null }
+
+// A scene /scene previews in place of the one the date or the settings pick.
+export type SceneChoice = { preview: string | null }
 
 declare module 'claude-code' {
   interface PluginState {
-    'seasonal-theme': { pile: Shaped<PileView>; reading: Shaped<Reading> }
+    'seasonal-theme': { pile: Shaped<PileView>; reading: Shaped<Reading>; scene: Shaped<SceneChoice> }
   }
 }

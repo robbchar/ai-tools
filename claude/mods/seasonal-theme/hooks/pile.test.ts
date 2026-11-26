@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import type { PileView, Reading } from '../types'
 
-import { describeReading, fillFor, levelFor, parseLeaves, settle } from './pile'
+import { fillFor, levelFor, settle } from './pile'
 
 // A settled view at a percent, as the mod would hold it.
 const at = (percent: number | null): PileView => {
@@ -99,43 +99,5 @@ describe('settle', () => {
 
     const back = settle(at(95), { live: 30, preview: 95 }, live(30), 8)
     expect(back).toEqual({ level: 1, fill: 30, percent: 30, from: 4, fromFill: 95, transition: 'scatter', time: 8 })
-  })
-})
-
-describe('describeReading', () => {
-  test('a live reading names its level', () => {
-    expect(describeReading(live(34))).toBe('Context 34% (live): small pile.')
-  })
-
-  test('a preview says so, with the live reading beside it', () => {
-    expect(describeReading({ live: 34.4, preview: 92 })).toBe(
-      'Previewing 92%: wrap-up (time to compact). Live is 34%; /leaves off returns to it.',
-    )
-  })
-
-  test('no reading yet says so', () => {
-    expect(describeReading(live(null))).toBe('No context reading yet: scattered leaves.')
-  })
-})
-
-describe('parseLeaves', () => {
-  test('a percentage previews that fill', () => {
-    expect(parseLeaves('80')).toEqual({ kind: 'preview', percent: 80 })
-    expect(parseLeaves(' 92.5% ')).toEqual({ kind: 'preview', percent: 92.5 })
-  })
-
-  test('off returns to the live reading', () => {
-    expect(parseLeaves('off')).toEqual({ kind: 'off' })
-    expect(parseLeaves('LIVE')).toEqual({ kind: 'off' })
-  })
-
-  test('nothing shows where things stand', () => {
-    expect(parseLeaves('')).toEqual({ kind: 'show' })
-  })
-
-  test('out of range or not a number is refused', () => {
-    expect(parseLeaves('120').kind).toBe('bad')
-    expect(parseLeaves('-1').kind).toBe('bad')
-    expect(parseLeaves('lots').kind).toBe('bad')
   })
 })

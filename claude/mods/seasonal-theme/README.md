@@ -27,7 +27,7 @@ A wooden sign on a post beside the tower shows the exact percent, updated every 
 
 Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips fall away, the leaves blow across the window, and the tower springs up as they land. When the reading drops sharply (10 points or more, or it goes missing), as after a compact or `/clear`, the tower sinks away, its leaves swirl back up into the tree, and the tree fills out again, the far trees with it. If the turkey was in the pile, it floats down from the top and stays away for at least 40 seconds. Everything updates after each turn, since that's when Claude Code measures the context window. Coming back to a session later shows the scene as it stands, without replaying its last move.
 
-`/leaves 80` previews the scene at 80% without touching the live reading; the status line marks it `(preview)`. `/leaves off` goes back to live, and `/leaves` on its own says where things stand.
+`/scene` previews a scene, a context percent or both, in this session only and without touching the live reading. `/scene winter` shows another scene, `/scene 80` shows this one at 80%, and `/scene winter 80` does both; the words can come in either order. The status line marks a percent preview `(preview)`. `/scene off` ends both previews, and `/scene` on its own says what's showing and why. A scene preview lasts through the mod reloading, which helps while you edit a season.
 
 ## Where it draws
 
@@ -70,6 +70,8 @@ The mod's **Season** setting is `auto` by default, which picks by date: December
    - `distance`: the field's color, and a cluster of far trees drawn at a fullness of 1, 0.66, 0.33 or 0 (bare), with each crown in a group classed `crown` so it can regrow.
 2. Add it to `SEASONS` in `hooks/seasons/index.ts`.
 3. Add its id to the `season` options in `.claude-plugin/plugin.json`.
+
+To see it, run `/scene <season>` in a session, then `/scene 30`, `/scene 60`, `/scene 80` and `/scene 95` to step through its levels. `/scene off` then drops back to the live reading, which plays the compact's swirl when that's 10 or more points lower.
 
 `hooks/seasons/seasons.test.ts` checks every registered season. Its palette must have no "Desktop won't paint" line, and every level and transition must draw a scene the engine accepts. The steps, levels, gusts and swirls live in `hooks/pile.ts` and `hooks/scene.ts` and don't change per season.
 

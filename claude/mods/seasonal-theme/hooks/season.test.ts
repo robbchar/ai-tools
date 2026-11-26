@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { parseChoice, pickSeason, seasonForDate } from './season'
+import { parseChoice, pickScene, pickSeason, seasonForDate } from './season'
 
 const on = (month: number, day: number) => new Date(2026, month - 1, day, 12)
 
@@ -45,5 +45,29 @@ describe('parseChoice', () => {
     expect(parseChoice(undefined)).toBe('auto')
     expect(parseChoice('autumn')).toBe('auto')
     expect(parseChoice(3)).toBe('auto')
+  })
+})
+
+describe('pickScene', () => {
+  const both = ['fall', 'winter'] as const
+
+  test('with no preview, the date picks', () => {
+    expect(pickScene('auto', on(11, 26), both, null)).toEqual({ id: 'fall', base: 'fall', wanted: 'fall', isPinned: false, isPreview: false })
+  })
+
+  test('a preview wins over the date, which stays known', () => {
+    expect(pickScene('auto', on(11, 26), both, 'winter')).toEqual({ id: 'winter', base: 'fall', wanted: 'fall', isPinned: false, isPreview: true })
+  })
+
+  test('a preview wins over a pinned season too', () => {
+    expect(pickScene('winter', on(11, 26), both, 'fall')).toEqual({ id: 'fall', base: 'winter', wanted: 'winter', isPinned: true, isPreview: true })
+  })
+
+  test('a stored preview with no art any more is ignored', () => {
+    expect(pickScene('auto', on(11, 26), both, 'spring')).toEqual({ id: 'fall', base: 'fall', wanted: 'fall', isPinned: false, isPreview: false })
+  })
+
+  test('where the date asks for a scene with no art, fall stands in and says for what', () => {
+    expect(pickScene('auto', on(1, 15), ['fall'], null)).toEqual({ id: 'fall', base: 'fall', wanted: 'winter', isPinned: false, isPreview: false })
   })
 })
