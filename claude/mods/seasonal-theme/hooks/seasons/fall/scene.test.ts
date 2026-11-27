@@ -1,17 +1,20 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import type { PileView, Transition } from '../types'
+import type { PileView, Transition } from '../../../types'
 
-import { fillFor, levelFor } from './pile'
-import { altFor, renderScene, sceneProblems, showing } from './scene'
-import type { SceneArt } from './seasons/types'
+import { fillFor, levelFor } from '../../pile'
+import { sceneProblems } from '../../stage/rules'
+import { showing } from '../../stage/visits'
+
+import { renderFall } from './scene'
+import type { FallArt } from './types'
 
 // A plain stand-in season: shows the scene works with any art.
 const CALM = '#00aa00'
 const WARM = '#ee0000'
 const SCENERY = '<g class="far"><circle cx="400" cy="950" r="9"/></g>'
 const CLUMPS = Array.from({ length: 10 }, (_, i) => ({ x: 60 + i * 30, y: 400 + (i % 3) * 40, r: 50 }))
-const art: SceneArt = {
+const art: FallArt = {
   describe: level => `level ${level}`,
   ground: { light: '#ffffff', dark: '#000000' },
   pile: {
@@ -67,7 +70,7 @@ const visitTimeline = (svg: string) => {
 
   return { seconds, delay: Number(delay), visits }
 }
-const LOOP = visitTimeline(renderScene(art, at(30))).seconds
+const LOOP = visitTimeline(renderFall(art, at(30))).seconds
 
 // The first path classed mound after a marker, as x,y pairs.
 const outline = (svg: string, after = '') => {
@@ -87,14 +90,14 @@ const STEPS = Array.from({ length: 20 }, (_, i) => (i + 1) * 5)
 
 describe('the tower', () => {
   test('with no context used there is no tower, just a few leaves', () => {
-    const svg = renderScene(art, at(0))
+    const svg = renderFall(art, at(0))
 
     expect(svg).not.toContain('class="mound"')
     expect(count(svg, /class="litter"/g)).toBeGreaterThan(0)
   })
 
   test('grows taller with every 5% step', () => {
-    const tops = STEPS.map(percent => top(renderScene(art, at(percent))))
+    const tops = STEPS.map(percent => top(renderFall(art, at(percent))))
 
     for (const [i, y] of tops.entries()) {
       if (i > 0) {
@@ -104,11 +107,11 @@ describe('the tower', () => {
   })
 
   test('at 100% it stands most of the stage tall', () => {
-    expect(985 - top(renderScene(art, at(100)))).toBeGreaterThan(800)
+    expect(985 - top(renderFall(art, at(100)))).toBeGreaterThan(800)
   })
 
   test('keeps the same base width at every step', () => {
-    const widths = STEPS.map(percent => base(renderScene(art, at(percent))))
+    const widths = STEPS.map(percent => base(renderFall(art, at(percent))))
 
     expect(new Set(widths).size).toBe(1)
     expect(widths[0]).toBeGreaterThan(150)
@@ -116,7 +119,7 @@ describe('the tower', () => {
 
   test('never bulges much past its base', () => {
     for (const percent of STEPS) {
-      const svg = renderScene(art, at(percent))
+      const svg = renderFall(art, at(percent))
       const xs = outline(svg).map(point => point.x)
 
       expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(base(svg) * 1.1)
@@ -124,11 +127,11 @@ describe('the tower', () => {
   })
 
   test('taller towers hold more leaves', () => {
-    expect(towerPieces(renderScene(art, at(80)))).toBeGreaterThan(towerPieces(renderScene(art, at(20))))
+    expect(towerPieces(renderFall(art, at(80)))).toBeGreaterThan(towerPieces(renderFall(art, at(20))))
   })
 
   test('below 75% the pile uses calm colors', () => {
-    const svg = renderScene(art, at(70))
+    const svg = renderFall(art, at(70))
 
     expect(svg).toContain(`fill="${CALM}"`)
     expect(svg).not.toContain(`fill="${WARM}"`)
@@ -136,7 +139,7 @@ describe('the tower', () => {
 
   test('from 75% the pile turns warm', () => {
     for (const percent of [75, 95]) {
-      const svg = renderScene(art, at(percent))
+      const svg = renderFall(art, at(percent))
 
       expect(svg).toContain(`fill="${WARM}"`)
       expect(svg).not.toContain(`fill="${CALM}"`)
@@ -144,12 +147,12 @@ describe('the tower', () => {
   })
 
   test('teeters once it is half the window tall', () => {
-    expect(renderScene(art, at(45))).not.toContain('class="teeter')
-    expect(renderScene(art, at(50))).toContain('class="teeter')
+    expect(renderFall(art, at(45))).not.toContain('class="teeter')
+    expect(renderFall(art, at(50))).toContain('class="teeter')
   })
 
   test('the root says which level and fill it draws', () => {
-    const svg = renderScene(art, at(37))
+    const svg = renderFall(art, at(37))
 
     expect(svg).toContain('data-level="1"')
     expect(svg).toContain('data-fill="35"')
@@ -158,11 +161,11 @@ describe('the tower', () => {
 
 describe('the big tree', () => {
   test('is full with no context used', () => {
-    expect(clumps(renderScene(art, at(0)))).toBe(CLUMPS.length)
+    expect(clumps(renderFall(art, at(0)))).toBe(CLUMPS.length)
   })
 
   test('loses clumps as the context fills, and never gains them back while it rises', () => {
-    const counts = [0, ...STEPS].map(percent => clumps(renderScene(art, at(percent))))
+    const counts = [0, ...STEPS].map(percent => clumps(renderFall(art, at(percent))))
 
     for (const [i, n] of counts.entries()) {
       if (i > 0) {
@@ -175,31 +178,31 @@ describe('the big tree', () => {
 
   test('is bare from 90%, but for the last leaf', () => {
     for (const percent of [90, 100]) {
-      const svg = renderScene(art, at(percent))
+      const svg = renderFall(art, at(percent))
 
       expect(clumps(svg)).toBe(0)
       expect(svg).toContain('class="cling"')
     }
-    expect(renderScene(art, at(85))).not.toContain('class="cling"')
+    expect(renderFall(art, at(85))).not.toContain('class="cling"')
   })
 
   test('always shows its branches', () => {
     for (const percent of [0, 50, 100]) {
-      expect(renderScene(art, at(percent))).toContain('class="bough"')
+      expect(renderFall(art, at(percent))).toContain('class="bough"')
     }
   })
 })
 
 describe('the gust', () => {
   test('each step up blows leaves from the tree across to the pile', () => {
-    const svg = renderScene(art, at(55, 'grow', 50))
+    const svg = renderFall(art, at(55, 'grow', 50))
 
     expect(count(svg, /class="gust g\d+"/g)).toBeGreaterThan(5)
     expect(svg).toContain('class="tree gusting"')
   })
 
   test('the gust starts at the tree on the left and ends at the pile on the right', () => {
-    const svg = renderScene(art, at(55, 'grow', 50))
+    const svg = renderFall(art, at(55, 'grow', 50))
     const frames = svg.match(/@keyframes g0\{[^}]*\}[^@]*\}/)?.[0] ?? ''
 
     expect(frames).toMatch(/^@keyframes g0\{0%\{transform:translate\(\d+(\.\d+)?vmin/)
@@ -207,14 +210,14 @@ describe('the gust', () => {
   })
 
   test('the clumps a step strips fall away during the gust', () => {
-    const svg = renderScene(art, at(50, 'grow', 0))
-    const lost = clumps(renderScene(art, at(0))) - clumps(renderScene(art, at(50)))
+    const svg = renderFall(art, at(50, 'grow', 0))
+    const lost = clumps(renderFall(art, at(0))) - clumps(renderFall(art, at(50)))
 
     expect(count(svg, /class="clump leave"/g)).toBe(lost)
   })
 
   test('a settled scene has no gust', () => {
-    const svg = renderScene(art, at(55))
+    const svg = renderFall(art, at(55))
 
     expect(svg).not.toContain('class="gust')
     expect(svg).not.toContain('class="tree gusting"')
@@ -222,7 +225,7 @@ describe('the gust', () => {
   })
 
   test('reaching the wrap-up level gusts and dives', () => {
-    const svg = renderScene(art, at(92, 'dive', 85))
+    const svg = renderFall(art, at(92, 'dive', 85))
 
     expect(svg).toContain('class="dive"')
     expect(svg).toContain('class="gust g0"')
@@ -231,14 +234,14 @@ describe('the gust', () => {
 
 describe('after a compact', () => {
   test('the old tower collapses where it stood', () => {
-    const svg = renderScene(art, at(10, 'scatter', 95))
+    const svg = renderFall(art, at(10, 'scatter', 95))
 
     expect(svg).toContain('class="collapse"')
-    expect(top(svg, 'class="collapse"')).toBe(top(renderScene(art, at(95))))
+    expect(top(svg, 'class="collapse"')).toBe(top(renderFall(art, at(95))))
   })
 
   test('leaves swirl from the pile on the right back up to the tree on the left', () => {
-    const svg = renderScene(art, at(10, 'scatter', 95))
+    const svg = renderFall(art, at(10, 'scatter', 95))
     const frames = svg.match(/@keyframes s0\{[^}]*\}[^@]*\}/)?.[0] ?? ''
 
     expect(count(svg, /class="swirl s\d+"/g)).toBeGreaterThan(15)
@@ -247,21 +250,21 @@ describe('after a compact', () => {
   })
 
   test('the tree grows its leaves back', () => {
-    const svg = renderScene(art, at(10, 'scatter', 95))
+    const svg = renderFall(art, at(10, 'scatter', 95))
 
-    expect(count(svg, /class="clump arrive"/g)).toBe(clumps(renderScene(art, at(10))))
+    expect(count(svg, /class="clump arrive"/g)).toBe(clumps(renderFall(art, at(10))))
   })
 
   test('the wanderer pops out if it was in the pile', () => {
-    expect(renderScene(art, at(10, 'scatter', 95))).toContain('class="popout"')
-    expect(renderScene(art, at(5, 'scatter', 60))).not.toContain('class="popout"')
+    expect(renderFall(art, at(10, 'scatter', 95))).toContain('class="popout"')
+    expect(renderFall(art, at(5, 'scatter', 60))).not.toContain('class="popout"')
   })
 })
 
 describe('the wanderer', () => {
   test('visits below the wrap-up level', () => {
     for (const percent of [0, 30, 60, 85]) {
-      const svg = renderScene(art, at(percent))
+      const svg = renderFall(art, at(percent))
 
       expect(count(svg, /class="visit"/g)).toBe(1)
       expect(svg).not.toContain('class="peek"')
@@ -269,7 +272,7 @@ describe('the wanderer', () => {
   })
 
   test('comes out again after 30 seconds to 2 minutes, a different wait each time', () => {
-    const { seconds, visits } = visitTimeline(renderScene(art, at(30)))
+    const { seconds, visits } = visitTimeline(renderFall(art, at(30)))
     const gaps = visits.map((visit, k) => (visits[k + 1]?.start ?? seconds + (visits[0]?.start ?? 0)) - visit.end)
 
     expect(visits.length).toBeGreaterThan(3)
@@ -281,23 +284,15 @@ describe('the wanderer', () => {
   })
 
   test('draws the loop at the phase it is given', () => {
-    const { seconds, delay } = visitTimeline(renderScene(art, at(30), 123.4))
+    const { seconds, delay } = visitTimeline(renderFall(art, at(30), 123.4))
 
     expect(Math.abs(mod(-delay, seconds) - 123.4)).toBeLessThan(0.06)
-  })
-
-  test('a new reading carries the visits on from where they were', () => {
-    const first = showing({ ...at(30), time: T }, T, 0)
-    const later = showing({ ...at(31), time: T + 150_000 }, T + 150_000, first.anchor)
-
-    expect(later.anchor).toBe(first.anchor)
-    expect(Math.abs(mod(later.phase - first.phase, LOOP) - 150)).toBeLessThan(0.01)
   })
 
   test('shown again well after its reading, the turkey is out within seconds', () => {
     for (let wait = 6_000; wait < 600_000; wait += 7_000) {
       const shown = showing({ ...at(30), time: T }, T + wait, 0)
-      const { seconds, delay, visits } = visitTimeline(renderScene(art, shown.view, shown.phase))
+      const { seconds, delay, visits } = visitTimeline(renderFall(art, shown.view, shown.phase))
       const now = mod(-delay, seconds)
       const isOn = visits.some(visit => now >= visit.start && now < visit.end)
       const next = Math.min(...visits.map(visit => mod(visit.start - now, seconds)))
@@ -312,40 +307,15 @@ describe('the wanderer', () => {
     const popout = showing({ ...at(10, 'scatter', 95), time: T }, later, 0)
 
     expect(gust.view.transition).toBe('none')
-    expect(renderScene(art, gust.view, gust.phase)).not.toContain('class="tree gusting"')
-    expect(renderScene(art, popout.view, popout.phase)).not.toContain('class="popout"')
+    expect(renderFall(art, gust.view, gust.phase)).not.toContain('class="tree gusting"')
+    expect(renderFall(art, popout.view, popout.phase)).not.toContain('class="popout"')
     expect(popout.view).toMatchObject({ level: 0, fill: 10, from: 0, fromFill: 10 })
-  })
-
-  test('drawn right after its reading, the move plays', () => {
-    const view = { ...at(37, 'grow', 31), time: T }
-
-    expect(showing(view, T + 300, 0).view).toBe(view)
-  })
-
-  test('asked again moments after a switch back, the turkey stays where it was', () => {
-    const view = { ...at(30), time: T }
-    // 40 s into the loop: past the first visit, well before the next.
-    const first = showing(view, T + 60_000, T + 20_000)
-    const again = showing(view, T + 61_500, first.anchor)
-
-    expect(first.anchor).not.toBe(T + 20_000)
-    expect(again.anchor).toBe(first.anchor)
-    expect(Math.abs(again.phase - first.phase - 1.5)).toBeLessThan(0.01)
-  })
-
-  test('a reading just after a switch back carries on the visit it brought', () => {
-    const back = showing({ ...at(30), time: T }, T + 60_000, T + 20_000)
-    const next = showing({ ...at(31), time: T + 70_000 }, T + 70_000, back.anchor)
-
-    expect(next.anchor).toBe(back.anchor)
-    expect(Math.abs(mod(next.phase - back.phase, LOOP) - 10)).toBeLessThan(0.01)
   })
 
   test('after popping out it stays away at least 40 s, and never comes back mid-walk', () => {
     const holds: number[] = []
     for (let phase = 0; phase < LOOP; phase += 7) {
-      const svg = renderScene(art, at(10, 'scatter', 95), phase)
+      const svg = renderFall(art, at(10, 'scatter', 95), phase)
       const { seconds, delay, visits } = visitTimeline(svg)
       const hold = Number(svg.match(/\.hold\{animation:hold ([\d.]+)s/)?.[1])
       const back = mod(hold - delay, seconds)
@@ -359,12 +329,12 @@ describe('the wanderer', () => {
   })
 
   test('only a pop-out holds the visits back', () => {
-    expect(renderScene(art, at(30))).not.toContain('class="hold"')
-    expect(renderScene(art, at(5, 'scatter', 60))).not.toContain('class="hold"')
+    expect(renderFall(art, at(30))).not.toContain('class="hold"')
+    expect(renderFall(art, at(5, 'scatter', 60))).not.toContain('class="hold"')
   })
 
   test('at the wrap-up level only the peek shows, at the top of the tower', () => {
-    const svg = renderScene(art, at(95))
+    const svg = renderFall(art, at(95))
     const peekY = Number(svg.match(/translate\(\d+(?:\.\d+)? (\d+(?:\.\d+)?)\)"><g class="peek"/)?.[1])
 
     expect(svg).not.toContain('class="visit"')
@@ -372,13 +342,13 @@ describe('the wanderer', () => {
   })
 
   test('the dive plays once, on reaching the wrap-up level', () => {
-    expect(renderScene(art, at(92))).not.toContain('class="dive"')
+    expect(renderFall(art, at(92))).not.toContain('class="dive"')
   })
 })
 
 describe('the ground and the distance', () => {
   test('leaves gather on the ground as the context fills', () => {
-    const counts = [0, 50, 100].map(percent => count(renderScene(art, at(percent)), /class="ground-leaf"/g))
+    const counts = [0, 50, 100].map(percent => count(renderFall(art, at(percent)), /class="ground-leaf"/g))
 
     expect(counts[1]).toBeGreaterThan(counts[0] ?? 0)
     expect(counts[2]).toBeGreaterThan(counts[1] ?? 0)
@@ -386,10 +356,10 @@ describe('the ground and the distance', () => {
 
   test('far trees stand across the back and lose their leaves in three steps, at 30, 60 and 90%', () => {
     const fullnessAt = (percent: number) => [
-      ...new Set(renderScene(art, at(percent)).match(/class="far-tree" data-full="[^"]+"/g) ?? []),
+      ...new Set(renderFall(art, at(percent)).match(/class="far-tree" data-full="[^"]+"/g) ?? []),
     ]
 
-    expect(count(renderScene(art, at(0)), /class="far-tree"/g)).toBe(6)
+    expect(count(renderFall(art, at(0)), /class="far-tree"/g)).toBe(6)
     expect(fullnessAt(0)).toEqual(['class="far-tree" data-full="1"'])
     expect(fullnessAt(25)).toEqual(['class="far-tree" data-full="1"'])
     expect(fullnessAt(30)).toEqual(['class="far-tree" data-full="0.66"'])
@@ -401,50 +371,50 @@ describe('the ground and the distance', () => {
   })
 
   test('a step that crosses one of those marks drops a few leaves from the far trees', () => {
-    expect(count(renderScene(art, at(30, 'grow', 25)), /class="far-drop fd\d"/g)).toBeGreaterThan(6)
-    expect(renderScene(art, at(35, 'grow', 30))).not.toContain('class="far-drop')
-    expect(renderScene(art, at(30))).not.toContain('class="far-drop')
+    expect(count(renderFall(art, at(30, 'grow', 25)), /class="far-drop fd\d"/g)).toBeGreaterThan(6)
+    expect(renderFall(art, at(35, 'grow', 30))).not.toContain('class="far-drop')
+    expect(renderFall(art, at(30))).not.toContain('class="far-drop')
   })
 
   test('after a compact the far trees grow their leaves back with the big tree', () => {
-    expect(count(renderScene(art, at(10, 'scatter', 95)), /class="far-refill"/g)).toBe(6)
-    expect(renderScene(art, at(10))).not.toContain('class="far-refill"')
-    expect(renderScene(art, at(35, 'scatter', 55))).not.toContain('class="far-refill"')
+    expect(count(renderFall(art, at(10, 'scatter', 95)), /class="far-refill"/g)).toBe(6)
+    expect(renderFall(art, at(10))).not.toContain('class="far-refill"')
+    expect(renderFall(art, at(35, 'scatter', 55))).not.toContain('class="far-refill"')
   })
 
   test("the season's still scenery draws at every level", () => {
     for (const percent of [0, 50, 95]) {
-      expect(renderScene(art, at(percent))).toContain(SCENERY)
+      expect(renderFall(art, at(percent))).toContain(SCENERY)
     }
   })
 
   test('leaves drift down from the tree while it has some, and not once it is bare', () => {
-    expect(renderScene(art, at(30))).toContain('class="drift dl0"')
-    expect(renderScene(art, at(95))).not.toContain('class="drift dl')
+    expect(renderFall(art, at(30))).toContain('class="drift dl0"')
+    expect(renderFall(art, at(95))).not.toContain('class="drift dl')
   })
 })
 
 describe('the sign', () => {
   test('shows the exact context percent', () => {
-    expect(renderScene(art, at(42))).toMatch(/<text class="numerals"[^>]*>42%<\/text>/)
-    expect(renderScene(art, at(44))).toMatch(/<text class="numerals"[^>]*>44%<\/text>/)
+    expect(renderFall(art, at(42))).toMatch(/<text class="numerals"[^>]*>42%<\/text>/)
+    expect(renderFall(art, at(44))).toMatch(/<text class="numerals"[^>]*>44%<\/text>/)
   })
 
   test('shows a dash before there is any reading', () => {
-    expect(renderScene(art, { ...at(0), percent: null })).toMatch(/<text class="numerals"[^>]*>—<\/text>/)
+    expect(renderFall(art, { ...at(0), percent: null })).toMatch(/<text class="numerals"[^>]*>—<\/text>/)
   })
 
   test('collects leaves at 30, 60 and 90%, as the far trees lose theirs', () => {
-    const stuck = (percent: number) => count(renderScene(art, at(percent)), /class="stuck"/g)
+    const stuck = (percent: number) => count(renderFall(art, at(percent)), /class="stuck"/g)
 
     expect([25, 30, 55, 60, 85, 90, 100].map(stuck)).toEqual([0, 2, 2, 4, 4, 6, 6])
   })
 
   test('the turkey walks, dives and pops out in front of it', () => {
     const post = (svg: string) => svg.indexOf('class="post"')
-    const visit = renderScene(art, at(42))
-    const dive = renderScene(art, at(92, 'dive', 85))
-    const popout = renderScene(art, at(10, 'scatter', 95))
+    const visit = renderFall(art, at(42))
+    const dive = renderFall(art, at(92, 'dive', 85))
+    const popout = renderFall(art, at(10, 'scatter', 95))
 
     expect(visit.indexOf('class="visit"')).toBeGreaterThan(post(visit))
     expect(dive.indexOf('class="dive"')).toBeGreaterThan(post(dive))
@@ -452,19 +422,19 @@ describe('the sign', () => {
   })
 
   test('leaves on the ground lie in front of its post', () => {
-    const svg = renderScene(art, at(42))
+    const svg = renderFall(art, at(42))
 
     expect(svg.lastIndexOf('class="ground-leaf"')).toBeGreaterThan(svg.indexOf('class="post"'))
     expect(svg.indexOf('class="litter"')).toBeGreaterThan(svg.indexOf('class="post"'))
   })
 
   test('turns to the warning ink from 75%', () => {
-    expect(renderScene(art, at(70))).not.toContain('class="sign warn"')
-    expect(renderScene(art, at(75))).toContain('class="sign warn"')
+    expect(renderFall(art, at(70))).not.toContain('class="sign warn"')
+    expect(renderFall(art, at(75))).toContain('class="sign warn"')
   })
 
   test('draws at full strength, outside the faded art', () => {
-    const svg = renderScene(art, at(42))
+    const svg = renderFall(art, at(42))
     const sign = svg.indexOf('<g class="sign')
     const lastArt = svg.lastIndexOf('<g class="art">', sign)
 
@@ -474,40 +444,21 @@ describe('the sign', () => {
   })
 
   test("wears the season's ornament", () => {
-    expect(renderScene(art, at(42))).toContain('<circle class="acorn" r="3"/>')
-  })
-})
-
-describe('altFor', () => {
-  test('tells a reader the percent with the scene', () => {
-    expect(altFor(art, at(42))).toBe('level 1 42% of the context window is used.')
-  })
-
-  test('with no reading, just the scene', () => {
-    expect(altFor(art, { ...at(0), percent: null })).toBe('level 0')
+    expect(renderFall(art, at(42))).toContain('<circle class="acorn" r="3"/>')
   })
 })
 
 describe('motion and mode', () => {
   test('reduced motion and dark mode both have rules', () => {
-    const svg = renderScene(art, at(30))
+    const svg = renderFall(art, at(30))
 
     expect(svg).toContain('@media (prefers-reduced-motion: reduce)')
     expect(svg).toContain('@media (prefers-color-scheme: dark)')
   })
 })
 
-describe('sceneProblems', () => {
+describe('engine rules', () => {
   test('a clean scene has none', () => {
-    expect(sceneProblems(renderScene(art, at(80, 'grow', 20)))).toEqual([])
-  })
-
-  test('markup the engine refuses is named', () => {
-    expect(sceneProblems('<svg><image/></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><!-- sky --></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><a href="#x"/></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg><style>a{b:c}/* x */</style></svg>')).toHaveLength(1)
-    expect(sceneProblems('<svg>&</svg>')).toHaveLength(1)
-    expect(sceneProblems(`<svg>${'x'.repeat(131_072)}</svg>`)).toHaveLength(1)
+    expect(sceneProblems(renderFall(art, at(80, 'grow', 20)))).toEqual([])
   })
 })

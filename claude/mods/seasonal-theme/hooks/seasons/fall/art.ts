@@ -1,9 +1,11 @@
-import type { Level } from '../../types'
+import type { Level } from '../../../types'
 
-import type { Clump, Palette, PieceArt, Season } from './types'
+import type { Palette } from '../types'
+
+import type { Clump, FallArt, PieceArt } from './types'
 
 // Harvest: cream paper by day, hearth-lit brown by night.
-const palette: Palette = {
+export const fallPalette: Palette = {
   label: 'Harvest',
   roles: { accent: '#c2571a', danger: '#a3271f', success: '#526d24', warning: '#c48a14', pro: '#7d3c5c' },
   light: {
@@ -206,40 +208,35 @@ const DESCRIPTIONS: Record<Level, string> = {
   4: 'A bare tree holding one last leaf, and a turkey dived into the top of a towering leaf pile: time to wrap up or compact.',
 }
 
-export const fall: Season = {
-  id: 'fall',
-  label: 'Fall',
-  palette,
-  art: {
-    describe: level => DESCRIPTIONS[level],
-    ground: { light: '#f4ead9', dark: '#1b130e' },
-    pile: {
-      mound: { light: '#9a5a2c', dark: '#5a3520' },
-      warmMound: { light: '#8e3a22', dark: '#5e2618' },
-      piece: leaf,
-      colors: ['#c8641e', '#d39b2a', '#8a5426', '#b4481e', '#dfae45', '#9e2f22'],
-      warmColors: ['#b8321f', '#9e2b1f', '#c84a1c', '#d0601c', '#a83a24', '#c8641e'],
+export const fallArt: FallArt = {
+  describe: level => DESCRIPTIONS[level],
+  ground: { light: '#f4ead9', dark: '#1b130e' },
+  pile: {
+    mound: { light: '#9a5a2c', dark: '#5a3520' },
+    warmMound: { light: '#8e3a22', dark: '#5e2618' },
+    piece: leaf,
+    colors: ['#c8641e', '#d39b2a', '#8a5426', '#b4481e', '#dfae45', '#9e2f22'],
+    warmColors: ['#b8321f', '#9e2b1f', '#c84a1c', '#d0601c', '#a83a24', '#c8641e'],
+  },
+  drifter: { piece: leaf, colors: ['#c8641e', '#d39b2a', '#b4481e', '#9e2f22'] },
+  scenery: {
+    markup: hill + pumpkins,
+    tree: {
+      branches,
+      clumps: CLUMPS,
+      colors: ['#9e3f22', '#b8521e', '#c8641e', '#d6862a', '#dfae45', '#b4481e'],
+      lastLeaf: { x: 444, y: 472 },
     },
-    drifter: { piece: leaf, colors: ['#c8641e', '#d39b2a', '#b4481e', '#9e2f22'] },
-    scenery: {
-      markup: hill + pumpkins,
-      tree: {
-        branches,
-        clumps: CLUMPS,
-        colors: ['#9e3f22', '#b8521e', '#c8641e', '#d6862a', '#dfae45', '#b4481e'],
-        lastLeaf: { x: 444, y: 472 },
-      },
-    },
-    distance: { field: { light: '#e8d6b6', dark: '#2a1e15' }, trees: farTrees },
-    sign: {
-      wood: { light: '#e3c28e', dark: '#4a3420' },
-      ink: { light: '#3a2414', dark: '#f2dcb3' },
-      warmInk: { light: '#9e2b1f', dark: '#f08a6a' },
-      ornament: acorn,
-    },
-    wanderer: {
-      body: turkey,
-      peek: fan(0, 0, 48, [-50, -25, 0, 25, 50], FEATHERS),
-    },
+  },
+  distance: { field: { light: '#e8d6b6', dark: '#2a1e15' }, trees: farTrees },
+  sign: {
+    wood: { light: '#e3c28e', dark: '#4a3420' },
+    ink: { light: '#3a2414', dark: '#f2dcb3' },
+    warmInk: { light: '#9e2b1f', dark: '#f08a6a' },
+    ornament: acorn,
+  },
+  wanderer: {
+    body: turkey,
+    peek: fan(0, 0, 48, [-50, -25, 0, 25, 50], FEATHERS),
   },
 }

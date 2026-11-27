@@ -120,7 +120,7 @@ Claude Code plugins, each loaded from its folder through `CLAUDE_CODE_PLUGIN_DIR
 
 ##### `seasonal-theme`
 
-A seasonal look for the desktop app, picked by date (fall for now). As context fills, a big tree loses its leaves to gusts that carry them into a teetering leaf tower in the corner, a turkey dives into its top at 90%, and a compact swirls the leaves back. A sign beside the pile and the status line show the exact percent, and a `WSL` or `WIN` badge in the status line shows where Claude Code runs. `/scene <season> <percent>` previews a scene, a fill, or both. Setup: [claude/mods/seasonal-theme/README.md](claude/mods/seasonal-theme/README.md).
+A seasonal look for the desktop app, picked by date (fall and winter so far). In fall, as context fills, a big tree loses its leaves to gusts that carry them into a teetering leaf tower in the corner, a turkey dives into its top at 90%, and a compact swirls the leaves back. In winter, snow rises across the window against an A-frame house, a fox dives into it at 90%, and a compact slides the snow off. A wooden sign and the status line show the exact percent, and a `WSL` or `WIN` badge in the status line shows where Claude Code runs. `/scene <season> <percent>` previews a scene, a fill, or both. Setup: [claude/mods/seasonal-theme/README.md](claude/mods/seasonal-theme/README.md).
 
 ---
 

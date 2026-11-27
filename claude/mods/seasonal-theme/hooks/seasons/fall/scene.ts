@@ -1,8 +1,11 @@
-import type { Level, PileView } from '../types'
+import type { Level, PileView } from '../../../types'
 
-import type { Clump, ModeColor, PieceArt, SceneArt } from './seasons/types'
+import { frame } from '../../stage/frame'
+import { isWarm, modeRule, noise, pathOf, pick, r } from '../../stage/svg'
+import type { Parts, Point } from '../../stage/svg'
+import { holdAfterPopout, visitMarkup } from '../../stage/visits'
 
-export const MAX_SCENE_CHARS = 131_072
+import type { Clump, FallArt, PieceArt } from './types'
 
 // Two 1000-unit stages pinned to the window's bottom corners, scaled to its shorter side:
 // the tower on the right, the season's tree and scenery on the left. A stage unit is
@@ -21,50 +24,12 @@ const GUST_LEAVES = 9
 const SWIRL_LEAVES = 22
 const FAR_CLUSTERS = [18, 29, 40, 51, 62, 73]
 
-const isWarm = (level: Level) => level >= 3
-
-// Same input, same output: the scene looks the same on every redraw.
-const noise = (n: number): number => {
-  const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453
-
-  return x - Math.floor(x)
-}
-
-const r = (n: number) => Math.round(n * 10) / 10
-
-const pick = <T>(list: readonly T[], i: number): T | undefined => list[i % list.length]
-
-const modeRule = (selector: string, prop: string, color: ModeColor) => ({
-  light: `${selector}{${prop}:${color.light}}`,
-  dark: `${selector}{${prop}:${color.dark}}`,
-})
-
-type Parts = { css: string[]; dark: string[] }
-type Point = { x: number; y: number }
 type Spot = Point & { turn: number; i: number }
 type Tower = { height: number; cap: number }
 type Side = 'left' | 'right'
 
 const placed = (spot: Spot, inner: string, scale = PIECE_SCALE) =>
   `<g transform="translate(${r(spot.x)} ${r(spot.y)}) rotate(${r(spot.turn)}) scale(${scale})">${inner}</g>`
-
-// Smooth closed or open paths through points, with quadratic curves between midpoints.
-const pathOf = (points: readonly Point[]): string => {
-  const [first] = points
-  const last = points.at(-1)
-
-  if (first === undefined || last === undefined) {
-    return ''
-  }
-
-  const curves = points.slice(1, -1).map((point, k) => {
-    const next = points[k + 2] ?? point
-
-    return `Q${r(point.x)} ${r(point.y)} ${r((point.x + next.x) / 2)} ${r((point.y + next.y) / 2)}`
-  })
-
-  return `M${r(first.x)} ${r(first.y)}${curves.join('')}L${r(last.x)} ${r(last.y)}Z`
-}
 
 // -- The tower --------------------------------------------------------------------------
 
@@ -143,15 +108,15 @@ const faceSpots = (tower: Tower): Spot[] => {
   })
 }
 
-const towerColors = (art: SceneArt, level: Level) => (isWarm(level) ? art.pile.warmColors : art.pile.colors)
+const towerColors = (art: FallArt, level: Level) => (isWarm(level) ? art.pile.warmColors : art.pile.colors)
 
 const ratio = (from: number, to: number) => Math.round((from / to) * 100) / 100
 
-const peekMarkup = (art: SceneArt, tower: Tower, isRising: boolean) =>
+const peekMarkup = (art: FallArt, tower: Tower, isRising: boolean) =>
   `<g transform="translate(${PILE_X + 4} ${r(GROUND_Y - tower.height + 16)})"><g class="peek">` +
   `<g${isRising ? ' class="rise"' : ''}><g class="wiggle">${art.wanderer.peek}</g></g></g></g>`
 
-const towerMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const towerMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const tower = towerOf(view.fill)
 
   if (tower.height === 0) {
@@ -183,7 +148,7 @@ const towerMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact: the old tower's outline sinks and fades where it stood.
-const collapseMarkup = (art: SceneArt, view: PileView): string => {
+const collapseMarkup = (art: FallArt, view: PileView): string => {
   const tower = towerOf(view.fromFill)
 
   if (tower.height === 0) {
@@ -197,7 +162,7 @@ const collapseMarkup = (art: SceneArt, view: PileView): string => {
   return `<g class="collapse"><path class="mound" d="${pathOf(outline)}"/>${bits.join('')}</g>`
 }
 
-const litterMarkup = (art: SceneArt, view: PileView): string => {
+const litterMarkup = (art: FallArt, view: PileView): string => {
   const reach = view.fill === 0 ? 0 : HALF_WIDTH
   const colors = towerColors(art, view.level)
 
@@ -243,7 +208,7 @@ const blobPath = (clump: Clump, radius: number, salt: number): string => {
   return `M${mid(points.at(-1) ?? clump, points[0] ?? clump)}${curves.join('')}Z`
 }
 
-const clumpMarkup = (art: SceneArt, clump: Clump, i: number, radius: number, extra: string, delay: number): string => {
+const clumpMarkup = (art: FallArt, clump: Clump, i: number, radius: number, extra: string, delay: number): string => {
   const colors = art.scenery.tree.colors
   const count = Math.max(4, Math.round((2 * Math.PI * radius) / 58))
   const leaves = Array.from({ length: count }, (_, j) => {
@@ -264,7 +229,7 @@ const clumpMarkup = (art: SceneArt, clump: Clump, i: number, radius: number, ext
 
 type CrownState = { visible: Clump[]; leaving: Clump[] }
 
-const crownOf = (art: SceneArt, fill: number, fromFill: number): CrownState & { marks: number[] } => {
+const crownOf = (art: FallArt, fill: number, fromFill: number): CrownState & { marks: number[] } => {
   const clumps = art.scenery.tree.clumps
   const marks = marksOf(clumps.length)
   const now = fullnessOf(fill)
@@ -277,7 +242,7 @@ const crownOf = (art: SceneArt, fill: number, fromFill: number): CrownState & { 
   }
 }
 
-const treeMarkup = (art: SceneArt, view: PileView): string => {
+const treeMarkup = (art: FallArt, view: PileView): string => {
   const tree = art.scenery.tree
   const now = fullnessOf(view.fill)
   const before = fullnessOf(view.fromFill)
@@ -327,7 +292,7 @@ const between = (a: StagePoint, b: StagePoint, t: number, lift: number, sway: nu
 type Flight = { name: string; from: StagePoint; to: StagePoint; stops: readonly [number, number, number, number][]; seconds: number; delay: number }
 
 // Each stop is [percent, t along the way, lift in vmin, sideways sway in vmin].
-const flightMarkup = (art: SceneArt, flight: Flight, i: number, parts: Parts): string => {
+const flightMarkup = (art: FallArt, flight: Flight, i: number, parts: Parts): string => {
   const spin = 300 + noise(i + 61) * 500
   const frames = flight.stops.map(([at, t, lift, sway]) => {
     const fade = at === 0 || at === 100 ? 0 : 0.95
@@ -343,7 +308,7 @@ const flightMarkup = (art: SceneArt, flight: Flight, i: number, parts: Parts): s
 }
 
 // Each step up: a gust lifts leaves off the tree and carries them across to the pile.
-const gustMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const gustMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const crown = crownOf(art, view.fill, view.fromFill)
   const sources = crown.leaving.length > 0 ? crown.leaving : crown.visible.length > 0 ? crown.visible : art.scenery.tree.clumps
   const topOfPile = GROUND_Y - towerOf(view.fill).height + 20
@@ -366,7 +331,7 @@ const gustMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact: leaves swirl up off the old pile and back into the tree.
-const swirlMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const swirlMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const old = towerOf(view.fromFill)
   const spots = old.height === 0 ? [] : edgeSpots(outlineOf(old), 0)
   const crown = crownOf(art, view.fill, view.fromFill)
@@ -393,22 +358,6 @@ const swirlMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 // -- The wanderer -----------------------------------------------------------------------
 
 // Alternating leg swings over walking stretches of a looping timeline.
-const strideKeyframes = (name: string, walks: readonly [number, number][], step: number, swing: number) => {
-  const stops: string[] = ['0%{transform:none}']
-
-  for (const [start, end] of walks) {
-    let sign = 1
-    for (let at = start; at < end; at += step) {
-      stops.push(`${r(at * 100) / 100}%{transform:rotate(${sign * swing}deg)}`)
-      sign = -sign
-    }
-    stops.push(`${end}%{transform:none}`)
-  }
-  stops.push('100%{transform:none}')
-
-  return `@keyframes ${name}{${stops.join('')}}`
-}
-
 const peckKeyframes = (name: string, pecks: readonly number[], pct: (at: number) => number) => {
   const stops = pecks.flatMap(at => [
     `${pct(at)}%{transform:none}`,
@@ -419,119 +368,8 @@ const peckKeyframes = (name: string, pecks: readonly number[], pct: (at: number)
   return `@keyframes ${name}{0%{transform:none}${stops.join('')}100%{transform:none}}`
 }
 
-// One visit, in seconds from its start: walk in, peck about, turn round, walk off.
-const VISIT = { arrive: 5.4, turn: 10.9, leave: 11.3, gone: 16.8, pecks: [6.7, 7.9, 8.5, 9.8] } as const
-const STRIDE = 0.4
-const VISITS_PER_LOOP = 5
-// Whole seconds off stage between visits, and at least this long after popping out.
-const GAP_MIN = 30
-const GAP_MAX = 120
-const POPOUT_HOLD = 40
-
-// Visits at uneven gaps; the loop repeats, the same in every session.
-const visitSchedule = (): { starts: readonly number[]; seconds: number } => {
-  const starts: number[] = []
-  let at = 0
-  for (let k = 0; k < VISITS_PER_LOOP; k++) {
-    starts.push(at)
-    at += VISIT.gone + Math.round(GAP_MIN + noise(k * 19 + 11) * (GAP_MAX - GAP_MIN))
-  }
-
-  return { starts, seconds: r(at) }
-}
-
-const SCHEDULE = visitSchedule()
-
-// A drawing this long after its reading is the view shown again (a switch back), not a new move.
-const FRESH_MS = 5_000
-// Seconds from such a showing to the turkey stepping on stage.
-const VISIT_LEAD = 4
-
-// Seconds into the visit loop at `now`, with the loop's start at `anchor` on the clock (both ms).
-const loopAt = (now: number, anchor: number) => {
-  const at = ((now - anchor) / 1000) % SCHEDULE.seconds
-
-  return at < 0 ? at + SCHEDULE.seconds : at
-}
-
-// Seconds until the next visit steps on stage, or 0 while one is under way.
-const untilVisit = (phase: number) => {
-  const start = SCHEDULE.starts.findLast(s => s <= phase) ?? 0
-
-  return phase - start < VISIT.gone ? 0 : (SCHEDULE.starts.find(s => s > phase) ?? SCHEDULE.seconds) - phase
-}
-
-export type Showing = { view: PileView; phase: number; anchor: number }
-
-// A drawing made `now`. Soon after its reading it plays the view's move, and the visits run on from
-// `anchor`. Later, as on a switch back, it shows the view settled and brings the next visit close.
-export const showing = (view: PileView, now: number, anchor: number): Showing => {
-  const phase = loopAt(now, anchor)
-
-  if (now - view.time < FRESH_MS) {
-    return { view, phase, anchor }
-  }
-
-  const settled: PileView = { ...view, from: view.level, fromFill: view.fill, transition: 'none' }
-  const wait = untilVisit(phase)
-
-  if (wait <= VISIT_LEAD + 2) {
-    return { view: settled, phase, anchor }
-  }
-
-  const moved = anchor - Math.round((wait - VISIT_LEAD) * 1000)
-
-  return { view: settled, phase: loopAt(now, moved), anchor: moved }
-}
-
-// How long the visitor stays away after popping out; a visit still under way then is skipped whole.
-const holdAfterPopout = (phase: number) => {
-  const then = (phase + POPOUT_HOLD) % SCHEDULE.seconds
-  const into = then - (SCHEDULE.starts.findLast(start => start <= then) ?? 0)
-
-  return into < VISIT.gone ? POPOUT_HOLD + VISIT.gone - into : POPOUT_HOLD
-}
-
-// Now and then the wanderer walks in from the right, pecks about, and walks off.
-const visitMarkup = (art: SceneArt, phase: number, hold: number, parts: Parts): string => {
-  const { starts, seconds } = SCHEDULE
-  const pct = (at: number) => Math.round((at / seconds) * 100_000) / 1000
-  const away = `transform:translateX(${OFFSTAGE_X - PECK_X}px)`
-  const loop = (ahead = 0) => `${seconds}s linear ${r(-phase - ahead)}s infinite`
-  const walk = starts.map(s =>
-    `${pct(s)}%{${away}}${pct(s + VISIT.arrive)}%,${pct(s + VISIT.leave)}%{transform:none}${pct(s + VISIT.gone)}%{${away}}`)
-  const turn = starts.map(s =>
-    `${pct(s + VISIT.turn)}%{transform:none}${pct(s + VISIT.leave)}%,${pct(s + VISIT.gone)}%{transform:scaleX(-1)}` +
-    `${pct(s + VISIT.gone + 0.1)}%{transform:none}`)
-  const walks = starts.flatMap((s): [number, number][] => [
-    [pct(s), pct(s + VISIT.arrive)],
-    [pct(s + VISIT.leave), pct(s + VISIT.gone)],
-  ])
-  parts.css.push(
-    `.visit{${away};animation:visit ${loop()}}`,
-    `@keyframes visit{${walk.join('')}100%{${away}}}`,
-    `.visit .turn{animation:visitturn ${loop()}}`,
-    `@keyframes visitturn{0%{transform:none}${turn.join('')}100%{transform:none}}`,
-    `.visit .head{animation:visitpeck ${loop()}}`,
-    peckKeyframes('visitpeck', starts.flatMap(s => VISIT.pecks.map(at => s + at)), pct),
-    // One set of strides: leg-b runs a stride ahead, so the legs swing opposite ways.
-    `.visit .leg-a{animation:visitleg ${loop()}}`,
-    `.visit .leg-b{animation:visitleg ${loop(STRIDE)}}`,
-    strideKeyframes('visitleg', walks, (STRIDE / seconds) * 100, 20),
-  )
-  const body = `<g class="visit"><g class="turn">${art.wanderer.body}</g></g>`
-
-  if (hold === 0) {
-    return `<g transform="translate(${PECK_X} ${GROUND_Y})">${body}</g>`
-  }
-
-  parts.css.push(`.hold{animation:hold ${Math.ceil(hold * 10) / 10}s step-end both}`, '@keyframes hold{from{opacity:0}to{opacity:1}}')
-
-  return `<g transform="translate(${PECK_X} ${GROUND_Y})"><g class="hold">${body}</g></g>`
-}
-
 // Reaching the wrap-up level: the wanderer crouches, launches up the tower, and dives in at the top.
-const diveMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const diveMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const top = r(towerOf(view.fill).height)
   parts.css.push(
     '.dive{opacity:0;animation:dive 7s linear both}',
@@ -551,7 +389,7 @@ const diveMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
 }
 
 // After a compact or clear: the wanderer pops out of the top and floats down as the tower goes.
-const popoutMarkup = (art: SceneArt, view: PileView, parts: Parts): string => {
+const popoutMarkup = (art: FallArt, view: PileView, parts: Parts): string => {
   const top = r(towerOf(view.fromFill).height)
   parts.css.push(
     '.popout{opacity:0;animation:popout 10s linear both}',
@@ -592,7 +430,7 @@ const driftMarkup = (piece: PieceArt, colors: readonly string[], view: PileView,
   }).join('')
 
 // Leaves on the ground, a few more with every step; each keeps its place as more arrive.
-const groundMarkup = (art: SceneArt, view: PileView, side: Side): string => {
+const groundMarkup = (art: FallArt, view: PileView, side: Side): string => {
   const count = 3 + Math.round((9 * view.fill) / 100)
   const [from, span, salt] = side === 'left' ? [250, 470, 71] : [360, 620, 91]
 
@@ -614,7 +452,7 @@ const farStep = (fill: number) => (fill >= 90 ? 3 : fill >= 60 ? 2 : fill >= 30 
 const farFullness = (fill: number) => [1, 0.66, 0.33, 0][farStep(fill)] ?? 0
 
 // A few tiny leaves falling from a far cluster, in its 120 by 100 box.
-const farDrops = (art: SceneArt, cluster: number): string =>
+const farDrops = (art: FallArt, cluster: number): string =>
   [0, 1, 2]
     .map(k => {
       const x = 20 + noise(cluster * 7 + k) * 80
@@ -627,7 +465,7 @@ const farDrops = (art: SceneArt, cluster: number): string =>
     .join('')
 
 // A field across the back of the window, and clusters of far trees standing on it.
-const distanceMarkup = (art: SceneArt, view: PileView): string => {
+const distanceMarkup = (art: FallArt, view: PileView): string => {
   const fullness = farFullness(view.fill)
   const before = farFullness(view.fromFill)
   const isDrop = (view.transition === 'grow' || view.transition === 'dive') && fullness < before
@@ -655,7 +493,7 @@ const STUCK: readonly [number, number, number][] = [
 ]
 
 // A wooden sign on a post beside the tower, showing the context percent.
-const signMarkup = (art: SceneArt, view: PileView): string => {
+const signMarkup = (art: FallArt, view: PileView): string => {
   const text = view.percent === null ? '—' : `${view.percent}%`
   const stuck = STUCK.slice(0, farStep(view.fill) * 2).map(([x, y, turn], i) =>
     placed({ x: SIGN_X + x, y: 886 + y, turn, i }, `<g class="stuck">${art.pile.piece(pick(art.drifter.colors, i + 2) ?? '', i)}</g>`, 1.1),
@@ -674,10 +512,7 @@ const signMarkup = (art: SceneArt, view: PileView): string => {
 }
 
 // What a reader who can't see the backdrop is told: the scene, then the percent.
-export const altFor = (art: SceneArt, view: PileView): string =>
-  view.percent === null ? art.describe(view.level) : `${art.describe(view.level)} ${view.percent}% of the context window is used.`
-
-const baseCss = (art: SceneArt, level: Level): Parts => {
+const baseCss = (art: FallArt, level: Level): Parts => {
   const ground = modeRule('.ground', 'fill', art.ground)
   const mound = modeRule('.mound', 'fill', isWarm(level) ? art.pile.warmMound : art.pile.mound)
   const field = modeRule('.field', 'fill', art.distance.field)
@@ -738,7 +573,7 @@ const baseCss = (art: SceneArt, level: Level): Parts => {
 }
 
 // `phase`: seconds into the turkey's visit loop as this drawing starts.
-export const renderScene = (art: SceneArt, view: PileView, phase = 0): string => {
+export const renderFall = (art: FallArt, view: PileView, phase = 0): string => {
   const parts = baseCss(art, view.level)
   const tower = towerOf(view.fill)
   const crown = crownOf(art, view.fill, view.fromFill)
@@ -769,20 +604,15 @@ export const renderScene = (art: SceneArt, view: PileView, phase = 0): string =>
   const isPopout = isScatter && view.from === 4
   const wanderer = view.level === 4
     ? (view.transition === 'dive' ? diveMarkup(art, view, parts) : '')
-    : visitMarkup(art, phase, isPopout ? holdAfterPopout(phase) : 0, parts) + (isPopout ? popoutMarkup(art, view, parts) : '')
+    : visitMarkup({ body: art.wanderer.body, x: PECK_X, y: GROUND_Y, offstageX: OFFSTAGE_X, head: peckKeyframes }, phase, isPopout ? holdAfterPopout(phase) : 0, parts) +
+      (isPopout ? popoutMarkup(art, view, parts) : '')
   const flights = isGust ? gustMarkup(art, view, parts) : isScatter ? swirlMarkup(art, view, parts) : ''
   const rightLane = driftMarkup(drifter.piece, drifter.colors, view, right, parts)
   const leftLane = driftMarkup(drifter.piece, drifter.colors, view, left, parts)
 
-  const style =
-    parts.css.join('') +
-    `@media (prefers-color-scheme: dark){${parts.dark.join('')}}` +
-    '@media (prefers-reduced-motion: reduce){*{animation:none!important}}'
-
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" data-level="${view.level}" data-fill="${view.fill}"` +
-    `${isWarm(view.level) ? ' class="warm"' : ''}>` +
-    `<style>${style}</style>` +
+  return frame(
+    view,
+    parts,
     '<rect class="ground" width="100%" height="100%"/>' +
     distanceMarkup(art, view) +
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMinYMax meet"><g class="art">' +
@@ -790,22 +620,6 @@ export const renderScene = (art: SceneArt, view: PileView, phase = 0): string =>
     '<svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMaxYMax meet"><g class="art">' +
     `${shadow}${towerPart}${collapse}${rightLane}</g>${signMarkup(art, view)}` +
     `<g class="art">${litterMarkup(art, view)}${groundMarkup(art, view, 'right')}</g><g class="critter">${wanderer}</g></svg>` +
-    (flights === '' ? '' : `<g class="art">${flights}</g>`) +
-    '</svg>'
+    (flights === '' ? '' : `<g class="art">${flights}</g>`),
   )
 }
-
-const RULES: readonly [RegExp, string][] = [
-  [/<(image|foreignObject|script|iframe|video|audio)\b/i, 'embedded content (image, script or frame)'],
-  [/href/i, 'a link attribute'],
-  [/<!--|\/\*/, 'a comment'],
-  [/CDATA/, 'a CDATA section'],
-  [/&(?![a-z]+;|#\d+;)/i, 'a bare ampersand'],
-  [/url\(|@font-face|@import/i, 'an outside reference'],
-]
-
-// The engine's rules for a backdrop, as lines; empty when the scene passes.
-export const sceneProblems = (svg: string): string[] => [
-  ...(svg.length > MAX_SCENE_CHARS ? [`${svg.length} characters, over ${MAX_SCENE_CHARS}`] : []),
-  ...RULES.filter(([pattern]) => pattern.test(svg)).map(([, what]) => `holds ${what}`),
-]

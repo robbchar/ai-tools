@@ -62,6 +62,15 @@ const drawn = async ($: Engine, plugin: string = PLUGIN) => {
   return svg
 }
 
+// The backdrop as the app would draw it for the scene the last look asked for.
+const drawnAs = async ($: Engine, sceneId: string) => {
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'desktop', component: 'Backdrop', props: { ...BACKDROP, scene: sceneId } })
+  const svg = await ui.find({ type: 'Svg' })
+  await ui.unmount()
+
+  return svg === undefined ? undefined : String(svg.props.source)
+}
+
 const drawnScene = async ($: Engine, plugin: string = PLUGIN) => {
   const svg = await drawn($, plugin)
 
@@ -86,10 +95,34 @@ describe('seasonal-theme', () => {
   })
 
   test('a date whose season has no art yet still gets fall', async ($, on) => {
-    const { looks } = engine(on, { date: new Date(2026, 0, 15, 12) })
+    const { looks } = engine(on, { date: new Date(2026, 3, 15, 12) })
     await start($)
 
     expect(looks[0]?.backdrop).toEqual({ scene: 'fall' })
+  })
+
+  test('a winter date gets winter', async ($, on) => {
+    const { looks } = engine(on, { date: new Date(2026, 0, 15, 12) })
+    await start($)
+
+    expect(looks[0]?.backdrop).toEqual({ scene: 'winter' })
+  })
+
+  test('/scene winter and /scene fall switch the look, and the backdrop draws the scene it is given', async ($, on) => {
+    const { looks } = engine(on)
+    await start($)
+    expect(looks.at(-1)?.backdrop).toEqual({ scene: 'fall' })
+
+    await $.command.run(scene('winter'))
+    expect(looks.at(-1)?.backdrop).toEqual({ scene: 'winter' })
+    expect(await drawnAs($, 'winter')).toContain('class="snow-band"')
+
+    await $.command.run(scene('fall'))
+    expect(looks.at(-1)?.backdrop).toEqual({ scene: 'fall' })
+    expect(await drawnAs($, 'fall')).not.toContain('class="snow-band"')
+
+    await $.command.run(scene('off'))
+    expect(looks.at(-1)?.backdrop).toEqual({ scene: 'fall' })
   })
 
   test('the status line says WSL under WSL', async ($, on) => {
@@ -305,7 +338,7 @@ describe('seasonal-theme', () => {
     await start($)
     await $.session.measure(reading(30))
 
-    expect((await $.command.run(scene('lots'))).text).toBe('There\'s no "lots" scene yet. Scenes: fall.')
+    expect((await $.command.run(scene('lots'))).text).toBe('There\'s no "lots" scene yet. Scenes: fall, winter.')
     expect((await $.command.run(scene('fall 120'))).text).toBe('"120" isn\'t a percentage from 0 to 100.')
     expect((await $.command.run(scene(''))).text).toBe('Scene: fall, by date.\nContext: 30% (live), a small pile.')
   })
