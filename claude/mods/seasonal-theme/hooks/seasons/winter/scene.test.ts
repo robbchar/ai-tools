@@ -21,21 +21,21 @@ const draw = (percent: number | null, transition: Transition = 'none', fromPerce
 const depth = (svg: string, cls: string) => Number(svg.match(new RegExp(`class="${cls}" data-depth="([\\d.]+)"`))?.[1])
 const darkBlock = (svg: string) => svg.match(/@media \(prefers-color-scheme: dark\)\{(.*?)\}@media/)?.[1] ?? ''
 
-const LEFT_STAGE = '<svg width="47.19%" height="100%" viewBox="0 0 420 1000" preserveAspectRatio="xMinYMax meet" overflow="visible">'
-const RIGHT_STAGE = '<svg x="47.19%" width="52.81%" height="100%" viewBox="530 0 470 1000" preserveAspectRatio="xMaxYMax meet" overflow="visible">'
-const SIGN_STAGE = '<svg width="47.19%" height="100%" viewBox="0 0 420 1000" preserveAspectRatio="xMinYMin meet" overflow="visible">'
+const LEFT_STAGE = '<svg width="59.83%" height="100%" viewBox="0 0 700 1000" preserveAspectRatio="xMinYMax meet" overflow="visible">'
+const RIGHT_STAGE = '<svg x="59.83%" width="40.17%" height="100%" viewBox="530 0 470 1000" preserveAspectRatio="xMaxYMax meet" overflow="visible">'
+const SIGN_STAGE = '<svg width="59.83%" height="100%" viewBox="0 0 700 1000" preserveAspectRatio="xMinYMin meet" overflow="visible">'
 
 describe('the snow', () => {
   test("its top sits at the level for its fill", () => {
-    expect(draw(90)).toContain('data-top="570"')
-    expect(draw(0)).toContain('data-top="958"')
+    expect(draw(90)).toContain('data-top="525"')
+    expect(draw(0)).toContain('data-top="913"')
   })
 
   test('with no reading the scene is the plain dusting', () => {
     const svg = draw(null)
 
     expect(svg).toContain('data-level="0"')
-    expect(svg).toContain('data-top="958"')
+    expect(svg).toContain('data-top="913"')
   })
 })
 
@@ -186,5 +186,30 @@ describe('the house at the top', () => {
     const [, x = 'NaN', y = 'NaN'] = svg.match(/<rect class="chimney" x="([\d.]+)" y="([\d.]+)"/) ?? []
 
     expect(surfaceAt(Number(x) + 16, 100) - Number(y)).toBeGreaterThan(15)
+  })
+})
+
+// Every x,y pair in the points and rects inside a markup slice.
+const xsOf = (markup: string) => [...markup.matchAll(/points="([^"]+)"/g)].flatMap(match => (match[1] ?? '').split(' ').map(point => Number(point.split(',')[0])))
+const ysOf = (markup: string) => [...markup.matchAll(/points="([^"]+)"/g)].flatMap(match => (match[1] ?? '').split(' ').map(point => Number(point.split(',')[1])))
+
+describe('placement', () => {
+  test("the big tree sits well in from the window's left edge, clear of the app's sidebar", () => {
+    const svg = draw(30)
+    const tree = svg.slice(svg.indexOf('class="tree"'), svg.indexOf('</g>', svg.lastIndexOf('class="cap"')))
+
+    expect(Math.min(...xsOf(tree))).toBeGreaterThan(200)
+  })
+
+  test('the sign hangs in by the same amount', () => {
+    expect(draw(30)).toContain('<g transform="translate(280 0)"><g class="sign">')
+  })
+
+  test("the house and the tree stand on a strip of snow, above the window's bottom edge", () => {
+    const svg = draw(0)
+    const roof = svg.match(/<polygon class="roof" points="([^"]+)"/)?.[0] ?? ''
+
+    expect(Math.max(...ysOf(roof))).toBeLessThan(950)
+    expect(snowTopAt(0)).toBeLessThan(Math.max(...ysOf(roof)))
   })
 })

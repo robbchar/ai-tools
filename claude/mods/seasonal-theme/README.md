@@ -35,18 +35,18 @@ Each 5% step plays once: a gust lifts leaves off the tree, the clumps it strips 
 
 A frosty blue-gray palette with an amber accent. Snow rises across the whole window, measured against an A-frame house on the right. A tall evergreen stands on the left, far evergreens are scattered across the back (closer and bigger toward the window's sides), and a sign hangs on two ropes from the top-left, in front of everything. The roof, the trees and the sign gather more snow as the window fills, and the far trees sink into their own snow, less the farther away they are.
 
-Snow falls now and then at three depths: far flakes are small, slow, faint dots, and near ones are bigger, faster stars that turn as they fall. Each flake rests unseen between falls, the timing reshuffles every redraw, and snow falls more often from 50%. A red fox visits on the same clock as fall's turkey, trotting in along the snow and cocking its head to listen.
+Snow falls now and then at three depths: far flakes are small, slow, faint dots, and near ones are bigger, faster stars that turn as they fall. Each flake rests unseen between falls, the timing reshuffles every redraw, and snow falls more often from 50%. A red fox visits on the same clock as fall's turkey, trotting in through the snow and cocking its head to listen.
 
 | Context used | Snow | Everything else |
 | --- | --- | --- |
 | under 5% | a dusting along the bottom | light snow caps; the fox visits |
 | 5–75% | rises a step at a time | more snow on the roof, the trees and the sign |
 | 75–90% | keeps rising | the sign's numerals turn red and the house's windows glow warmer |
-| 90% and up | just under the house's peak, about 43% of the window, a little higher at 100% | only the roof peak, the chimney and the treetop show; the fox has dived in and only its tail sticks out |
+| 90% and up | just under the house's peak, nearly half the window, a little higher at 100% | only the roof peak, the chimney and the treetop show; the fox has dived in and only its tail sticks out |
 
 Each 5% step plays a short flurry of heavier snow, then the snow rises from its old level, however many steps it jumps. Crossing into 90%, the fox then runs in, leaps, and dives headfirst into the snow with a puff. A small drop eases the snow down. A compact or `/clear` sinks it, slides the roof's snow off both slopes, and blows the snow off the tree and the sign. If the fox was in the snow, it pops out, runs off, and stays away for at least 40 seconds.
 
-The house and the tree keep their size as the window narrows, until there's no longer room for both side by side (below about 0.89 × the window's height in width). Then they shrink together, the sign with them. An open side pane covers the right of the backdrop without resizing it, so the house and the fox hide behind it, while the snow level and the sign stay in view.
+The tree and the sign sit well in from the window's left edge, clear of the app's sidebar, and the house and the tree stand on a strip of snow above the bottom edge. They keep their size as the window narrows, until there's no longer room for both side by side (below about 1.17 × the window's height in width). Then they shrink together, the sign with them. An open side pane covers the right of the backdrop without resizing it, so the house and the fox hide behind it, while the snow level and the sign stay in view.
 
 ## Preview a scene
 

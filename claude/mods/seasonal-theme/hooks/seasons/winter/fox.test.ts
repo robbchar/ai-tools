@@ -88,10 +88,26 @@ const bandAt = (svg: string, x: number) => {
 }
 
 describe('the fox in the snow', () => {
-  test('stands on the drawn snow, drift and all, when it visits', () => {
+  test('never floats above the drawn snow anywhere on its walk', () => {
+    for (const percent of [0, 40, 80]) {
+      const svg = draw(percent)
+
+      for (let x = 615; x <= 1100; x += 25) {
+        expect(standsAt(svg)).toBeGreaterThan(bandAt(svg, x) - 0.5)
+      }
+    }
+  })
+
+  test('walks behind the front of the snow, so its feet sink in rather than show', () => {
     const svg = draw(40)
 
-    expect(Math.abs(standsAt(svg) - bandAt(svg, 615))).toBeLessThan(3)
+    expect(svg.indexOf('class="visit"')).toBeLessThan(svg.indexOf('<polygon class="snow"'))
+  })
+
+  test('pops out from behind the snow after a compact', () => {
+    const svg = draw(20, 'scatter', 95)
+
+    expect(svg.indexOf('class="popout"')).toBeLessThan(svg.indexOf('<polygon class="snow"'))
   })
 
   test("its tail comes up out of the drawn snow, with snow heaped round its base", () => {

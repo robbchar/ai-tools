@@ -6,10 +6,10 @@ const FILLS = Array.from({ length: 21 }, (_, i) => i * 5)
 
 describe('snowTopAt', () => {
   test('rises from a dusting to just under the peak at 90%', () => {
-    expect(snowTopAt(0)).toBe(958)
-    expect(snowTopAt(45)).toBe(764)
-    expect(snowTopAt(90)).toBe(570)
-    expect(snowTopAt(100)).toBe(526.9)
+    expect(snowTopAt(0)).toBe(913)
+    expect(snowTopAt(45)).toBe(719)
+    expect(snowTopAt(90)).toBe(525)
+    expect(snowTopAt(100)).toBe(481.9)
   })
 
   test('rises at every 5% step', () => {
@@ -22,8 +22,8 @@ describe('snowTopAt', () => {
     expect(snowTopAt(100)).toBeGreaterThan(GROUND_Y - HOUSE.height)
   })
 
-  test('at 90% it covers 43% of the stage', () => {
-    expect((1000 - snowTopAt(90)) / 1000).toBe(0.43)
+  test('at 90% it covers 47.5% of the stage', () => {
+    expect((1000 - snowTopAt(90)) / 1000).toBe(0.475)
   })
 })
 

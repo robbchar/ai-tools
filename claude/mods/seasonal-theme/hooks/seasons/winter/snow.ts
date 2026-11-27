@@ -2,18 +2,18 @@ import type { PileView } from '../../../types'
 import { r } from '../../stage/svg'
 import type { Parts } from '../../stage/svg'
 
-import { snowTopAt } from './geometry'
+import { LEFT_INSET, LEFT_SPAN, snowTopAt } from './geometry'
 import { pts } from './shapes'
 
 // The snow's bottom edge, deep enough that it still reaches the window's bottom while it sinks.
 const DEEP = 1500
 
 // Where the snow heaps against the house's left side, in right-stage units.
-const HOUSE_DRIFT_X = 605
+const HOUSE_DRIFT_X = 560
 
 // The snow's surface in right-stage units: gentle waves, and a drift against the house.
 export const surfaceAt = (x: number, fill: number): number =>
-  r(snowTopAt(fill) + Math.sin(x / 140) * 5 + Math.sin(x / 53 + 1) * 2.5 - 14 * Math.exp(-(((x - HOUSE_DRIFT_X) / 70) ** 2)))
+  r(snowTopAt(fill) + Math.sin(x / 140) * 5 + Math.sin(x / 53 + 1) * 2.5 - 14 * Math.exp(-(((x - HOUSE_DRIFT_X) / 45) ** 2)))
 
 // How the snow moves into this view: up after a step, down after a drop or a compact.
 export const moveOf = (view: PileView): '' | 'rise' | 'sink' => {
@@ -58,9 +58,9 @@ export const snowBand = (view: PileView, parts: Parts): string => {
 export const treeDrift = (view: PileView): string => {
   const top = snowTopAt(view.fill)
   const edge: [number, number][] = []
-  for (let x = -40; x <= 440; x += 20) edge.push([x, top + 8 - 26 * Math.exp(-(((x - 200) / 150) ** 2))])
+  for (let x = -40; x <= LEFT_SPAN + 20; x += 20) edge.push([x, top + 8 - 26 * Math.exp(-(((x - 200 - LEFT_INSET) / 150) ** 2))])
 
   const move = moveOf(view)
 
-  return `<polygon class="drift${move === '' ? '' : ` ${move}`}" points="${pts([...edge, [440, DEEP], [-40, DEEP]])}"/>`
+  return `<polygon class="drift${move === '' ? '' : ` ${move}`}" points="${pts([...edge, [LEFT_SPAN + 20, DEEP], [-40, DEEP]])}"/>`
 }

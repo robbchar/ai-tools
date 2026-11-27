@@ -67,8 +67,8 @@ const diveMarkup = (top: number, parts: Parts): { behind: string; front: string 
 
 // After a compact from 90% and up: it pops out of the old snow line and runs off.
 const popoutMarkup = (view: PileView, parts: Parts): string => {
-  const from = surfaceAt(FOX_X, view.fromFill)
-  const drop = r(surfaceAt(FOX_X, view.fill) - from)
+  const from = walkY(view.fromFill)
+  const drop = r(walkY(view.fill) - from)
   parts.css.push(
     '.popout{opacity:0;animation:popout 6s linear both}',
     `@keyframes popout{0%{transform:translate(${FOX_X}px,40px);opacity:0}6%{transform:translate(${FOX_X}px,-70px);opacity:1}` +
@@ -81,11 +81,19 @@ const popoutMarkup = (view: PileView, parts: Parts): string => {
   return `<g transform="translate(0 ${from})"><g class="popout"><g class="turn">${FOX_BODY}</g></g></g>`
 }
 
-// The fox for this view: `behind` goes under the snow band, so a dive's plunge is hidden;
-// `front` goes over it.
+// The fox's feet height for walking: the lowest point of the snow along its path, so it never
+// floats; drawn behind the band, the snow hides whatever of its legs sinks in.
+const walkY = (fill: number): number => {
+  let lowest = surfaceAt(FOX_X, fill)
+  for (let x = FOX_X; x <= OFFSTAGE_X; x += 5) lowest = Math.max(lowest, surfaceAt(x, fill))
+
+  return r(lowest + 2)
+}
+
+// The fox for this view: `behind` goes under the snow band, so it walks in the snow and a dive's
+// plunge is hidden; `front` goes over it.
 export const foxMarkup = (view: PileView, phase: number, parts: Parts): { behind: string; front: string } => {
-  // Where the snow's drawn surface is at the fox's spot, drift and all.
-  const top = surfaceAt(FOX_X, view.fill)
+  const top = walkY(view.fill)
   const move = moveOf(view)
   const moving = (markup: string) => (move === '' ? markup : `<g class="${move}">${markup}</g>`)
 
@@ -93,7 +101,7 @@ export const foxMarkup = (view: PileView, phase: number, parts: Parts): { behind
     const isDive = view.transition === 'dive'
     const dive = isDive ? diveMarkup(top, parts) : { behind: '', front: '' }
     const tail =
-      `<g transform="translate(${FOX_X} ${r(top + 6)})"><g class="tail${isDive ? ' tail-in' : ''}">${TAIL}</g>` +
+      `<g transform="translate(${FOX_X} ${r(surfaceAt(FOX_X, view.fill) + 6)})"><g class="tail${isDive ? ' tail-in' : ''}">${TAIL}</g>` +
       '<ellipse class="tail-snow" cy="-4" rx="30" ry="9"/></g>'
 
     return { behind: dive.behind, front: moving(tail) + dive.front }
@@ -107,5 +115,5 @@ export const foxMarkup = (view: PileView, phase: number, parts: Parts): { behind
     parts,
   )
 
-  return { behind: '', front: moving(visit) + (isPopout ? popoutMarkup(view, parts) : '') }
+  return { behind: moving(visit) + (isPopout ? popoutMarkup(view, parts) : ''), front: '' }
 }

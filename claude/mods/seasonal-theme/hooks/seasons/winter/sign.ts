@@ -2,7 +2,7 @@ import type { PileView } from '../../../types'
 import { r } from '../../stage/svg'
 import type { Parts } from '../../stage/svg'
 
-import { signSnowAt } from './geometry'
+import { LEFT_INSET, signSnowAt } from './geometry'
 import { blowCss } from './shapes'
 
 // The sign hangs on two ropes from the window's top edge, swaying a little, snow heaped on top.
@@ -22,7 +22,7 @@ export const signMarkup = (view: PileView, parts: Parts): string => {
   )
 
   return (
-    '<g class="sign">' +
+    `<g transform="translate(${LEFT_INSET} 0)"><g class="sign">` +
     '<line class="rope" x1="268" y1="-5" x2="264" y2="152"/><line class="rope" x1="392" y1="-5" x2="396" y2="152"/>' +
     '<rect class="board" x="250" y="150" width="160" height="86" rx="8"/>' +
     '<line class="grain" x1="258" y1="174" x2="402" y2="174"/><line class="grain" x1="258" y1="230" x2="402" y2="230"/>' +
@@ -31,6 +31,6 @@ export const signMarkup = (view: PileView, parts: Parts): string => {
     `<path class="sign-snow" data-depth="${sh}" d="${heap(sh)}"/>` +
     (isCompact ? `<path class="blow" d="${heap(signSnowAt(view.fromFill))}"/>` : '') +
     `<circle class="knot" cx="264" cy="152" r="${knot}"/><circle class="knot" cx="396" cy="152" r="${knot}"/>` +
-    '</g>'
+    '</g></g>'
   )
 }
